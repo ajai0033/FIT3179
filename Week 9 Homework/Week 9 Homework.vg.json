@@ -1,0 +1,38 @@
+{
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "title": "Example: Health indicator by LGA (Australia)",
+    "width": 800,
+    "height": 600,
+    "projection": {"type": "mercator"},
+    "data": {
+      "url": "https://raw.githubusercontent.com/cartdeco/Australia-json-data/master/ABS_LGA_2011.json",
+      "format": {"type": "topojson", "feature": "ABS_LGA_2011"}
+    },
+    "transform": [
+      {
+        "lookup": "properties.LGA_CODE21",
+        "from": {
+          "data": {
+            "url": "https://digital.atlas.gov.au/datasets/abs-health-and-disability-data-by-region-lga-november-2024.csv"
+          },
+          "key": "LGA_CODE21",
+          "fields": ["HasDisabilityPct", "LGA_NAME21"]
+        }
+      },
+      {"calculate": "datum.HasDisabilityPct", "as": "has_disability_pct"}
+    ],
+    "mark": {"type": "geoshape"},
+    "encoding": {
+      "color": {
+        "field": "has_disability_pct",
+        "type": "quantitative",
+        "scale": {"type": "quantile"},
+        "title": "Percent with disability"
+      },
+      "tooltip": [
+        {"field": "properties.LGA_NAME21", "type": "nominal", "title": "LGA"},
+        {"field": "has_disability_pct", "type": "quantitative", "title": "Pct with disability"}
+      ]
+    }
+  }
+  
