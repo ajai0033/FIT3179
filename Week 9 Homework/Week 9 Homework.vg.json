@@ -13,7 +13,7 @@
         "lookup": "properties.LGA_CODE21",
         "from": {
           "data": {
-            "url": "https://digital.atlas.gov.au/datasets/abs-health-and-disability-data-by-region-lga-november-2024.csv"
+            "url": "/Users/aditya/FIT3179/LGA_hlth_disab_DbR_Nov24_-7869466443108774970 (2).csv"
           },
           "key": "LGA_CODE21",
           "fields": ["HasDisabilityPct", "LGA_NAME21"]
