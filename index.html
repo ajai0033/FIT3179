@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Persons with disability (%) — by LGA (2018)</title>
+  <title>FIT3179 Week 9 Homework</title>
   <!-- Vega & Vega-Lite libraries -->
   <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
@@ -18,7 +18,11 @@
       "title": "Persons with disability (%) — by LGA (2018)",
       "width": 900,
       "height": 700,
-      "projection": {"type": "mercator"},
+      "projection": {
+        "type": "mercator",
+        "fit": {"signal": "data('topo')[0]"},
+        "center": [135, -25]
+    },
       "data": {
         "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_2021_AUST_GDA2020.json",
         "format": {"type": "topojson", "feature": "LGA_2021_AUST_GDA2020"}
@@ -44,8 +48,11 @@
         "color": {
           "field": "persons_with_disability_pct",
           "type": "quantitative",
-          "scale": {"type": "quantile"},
-          "title": "Persons with disability (%) (2018)"
+          "scale": {
+            "domain": [5, 10, 15, 20, 25, 30],  // adjust according to your data
+            "range": ["#f7fbff","#c6dbef","#6baed6","#2171b5","#08306b"]
+        },
+        "legend": {"title": "Percent with disability"}
         },
         "tooltip": [
           {"field": "properties.LGA_NAME21", "type": "nominal", "title": "LGA"},
