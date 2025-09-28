@@ -18,11 +18,7 @@
       "title": "Persons with disability (%) — by LGA (2018)",
       "width": 900,
       "height": 700,
-      "projection": {
-        "type": "mercator",
-        "fit": {"signal": "data('topo')[0]"},
-        "center": [135, -25]
-    },
+      "projection": {"type": "mercator"},
       "data": {
         "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_2021_AUST_GDA2020.json",
         "format": {"type": "topojson", "feature": "LGA_2021_AUST_GDA2020"}
@@ -49,8 +45,8 @@
           "field": "persons_with_disability_pct",
           "type": "quantitative",
           "scale": {
-            "domain": [5, 10, 15, 20, 25, 30],  // adjust according to your data
-            "range": ["#f7fbff","#c6dbef","#6baed6","#2171b5","#08306b"]
+            "type": "linear",
+            "domain": [0,37.2],
         },
         "legend": {"title": "Percent with disability"}
         },
