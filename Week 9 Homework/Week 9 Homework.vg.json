@@ -1,38 +1,40 @@
 {
-    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-    "title": "Example: Health indicator by LGA (Australia)",
-    "width": 800,
-    "height": 600,
-    "projection": {"type": "mercator"},
-    "data": {
-      "url": "https://raw.githubusercontent.com/cartdeco/Australia-json-data/master/ABS_LGA_2011.json",
-      "format": {"type": "topojson", "feature": "ABS_LGA_2011"}
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "title": "Persons with disability (%) — by LGA (2018)",
+  "width": 900,
+  "height": 700,
+  "projection": {"type": "mercator"},
+  "data": {
+    "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_2021_AUST_GDA2020.json",
+    "format": {"type": "topojson", "feature": "LGA_2021_AUST_GDA2020"}
+  },
+  "transform": [
+    {
+      "lookup": "properties.LGA_CODE21",
+      "from": {
+        "data": {
+          "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-9-Homework/LGA_hlth_disab_DbR_Nov24_-7869466443108774970%20(2).csv"
+        },
+        "key": "Local Government Areas 2021 code",
+        "fields": ["Persons with disability (%) (Data year: 2018)"]
+      }
     },
-    "transform": [
-      {
-        "lookup": "properties.LGA_CODE21",
-        "from": {
-          "data": {
-            "url": "/Users/aditya/FIT3179/LGA_hlth_disab_DbR_Nov24_-7869466443108774970 (2).csv"
-          },
-          "key": "LGA_CODE21",
-          "fields": ["HasDisabilityPct", "LGA_NAME21"]
-        }
-      },
-      {"calculate": "datum.HasDisabilityPct", "as": "has_disability_pct"}
-    ],
-    "mark": {"type": "geoshape"},
-    "encoding": {
-      "color": {
-        "field": "has_disability_pct",
-        "type": "quantitative",
-        "scale": {"type": "quantile"},
-        "title": "Percent with disability"
-      },
-      "tooltip": [
-        {"field": "properties.LGA_NAME21", "type": "nominal", "title": "LGA"},
-        {"field": "has_disability_pct", "type": "quantitative", "title": "Pct with disability"}
-      ]
+    {
+      "calculate": "datum[\"Persons with disability (%) (Data year: 2018)\"] == null ? null : +datum[\"Persons with disability (%) (Data year: 2018)\"]",
+      "as": "persons_with_disability_pct"
     }
+  ],
+  "mark": {"type": "geoshape"},
+  "encoding": {
+    "color": {
+      "field": "persons_with_disability_pct",
+      "type": "quantitative",
+      "scale": {"type": "quantile"},
+      "title": "Persons with disability (%) (2018)"
+    },
+    "tooltip": [
+      {"field": "properties.LGA_NAME21", "type": "nominal", "title": "LGA"},
+      {"field": "persons_with_disability_pct", "type": "quantitative", "title": "Pct (2018)"}
+    ]
   }
-  
+}
