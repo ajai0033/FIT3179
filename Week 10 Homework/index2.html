@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Disability rates by LGA — interactive visualisations</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 20px; }
+    h1 { margin-bottom: 4px; font-size: 1.3rem; }
+    .container { display:flex; flex-wrap:wrap; gap:24px; align-items:flex-start; }
+    .vis { box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding:10px; background:#fff; border-radius:6px; }
+    #map { width: 900px; max-width: 100%; }
+    #barchart { width: 900px; max-width: 100%; }
+    .note { font-size:0.9rem; color:#444; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <h1>Persons with disability (%) — by LGA (2018)</h1>
+  <p class="note">Interactive choropleth map (left) and a bar chart (right). Use the slider below the bar chart to filter LGAs by minimum disability percentage. Hover for tooltips.</p>
+
+  <div class="container">
+    <div id="map" class="vis"></div>
+    <div id="barchart" class="vis"></div>
+  </div>
+
+  <script type="text/javascript">
+  // ---------- Shared data URLs ----------
+  const topojsonUrl = "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_2021_AUST_GDA2020.json";
+  // CSV filename contains parentheses/spaces; this is the raw URL with the filename encoded in the path
+  const csvUrl = "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-9-Homework/LGA_hlth_disab_DbR_Nov24_-7869466443108774970%20(2).csv";
+
+  // ---------- Map spec (choropleth) ----------
+  const mapSpec = {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "title": "Persons with disability (%) — by LGA (2018)",
+    "width": 900,
+    "height": 700,
+    "projection": {"type": "mercator"},
+    "data": {
+      "url": topojsonUrl,
+      "format": {"type": "topojson", "feature": "LGA_2021_AUST_GDA2020"}
+    },
+    "transform": [
+      {
+        "lookup": "properties.LGA_CODE21",
+        "from": {
+          "data": {"url": csvUrl},
+          "key": "Local Government Areas 2021 code",
+          "fields": ["Persons with disability (%) (Data year: 2018)", "Local Government Areas 2021 name"]
+        }
+      },
+      {
+        // convert the verbose CSV percentage string to numeric
+        "calculate": "datum[\"Persons with disability (%) (Data year: 2018)\"] == null ? null : +datum[\"Persons with disability (%) (Data year: 2018)\"]",
+        "as": "persons_with_disability_pct"
+      }
+    ],
+    "mark": {"type": "geoshape"},
+    "encoding": {
+      "color": {
+        "field": "persons_with_disability_pct",
+        "type": "quantitative",
+        "scale": {"type": "quantile"},
+        "title": "Persons with disability (%) (2018)"
+      },
+      "tooltip": [
+        {"field": "properties.LGA_NAME21", "type": "nominal", "title": "LGA"},
+        {"field": "persons_with_disability_pct", "type": "quantitative", "title": "Pct (2018)", "format": ".1f"}
+      ]
+    }
+  };
+
+  // ---------- Bar chart spec (interactive Task 1) ----------
+  // This chart loads the CSV directly, sorts LGAs by disability %, and supports a slider filter.
+  const barSpec = {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "title": "LGAs ranked by persons with disability (%) — filterable",
+    "width": 900,
+    "height": 700,
+    // Parameter: slider to choose minimum percentage to include
+    "params": [
+      {
+        "name": "minPct",
+        "value": 0,
+        "bind": {
+          "input": "range",
+          "min": 0,
+          "max": 40,
+          "step": 0.1,
+          "name": "Minimum disability % to show: "
+        }
+      }
+    ],
+    "data": {
+      "url": csvUrl,
+      // TSV/CSV parsed automatically; we'll convert the percent field in transform
+      "format": {"type": "csv"}
+    },
+    "transform": [
+      // convert names and numeric field
+      {
+        "calculate": "datum[\"Persons with disability (%) (Data year: 2018)\"] == null ? null : +datum[\"Persons with disability (%) (Data year: 2018)\"]",
+        "as": "persons_with_disability_pct"
+      },
+      // filter by slider
+      {"filter": "datum.persons_with_disability_pct != null && datum.persons_with_disability_pct >= minPct"},
+      // keep only relevant fields
+      {"calculate": "datum[\"Local Government Areas 2021 name\"]", "as": "lga_name"},
+      // sort and rank - get top 50 for performance (you can adjust)
+      {"window": [{"op":"rank","as":"rank"}], "sort": [{"field":"persons_with_disability_pct","order":"descending"}]},
+      {"filter": "datum.rank <= 50"}
+    ],
+    // We will sort the x-axis by the quantitative value using a calculated sort
+    "mark": "bar",
+    "encoding": {
+      "y": {
+        "field": "lga_name",
+        "type": "ordinal",
+        "sort": {"field": "persons_with_disability_pct", "op": "max", "order": "descending"},
+        "title": "LGA",
+        "axis": {"labelLimit": 200, "labelFontSize": 11}
+      },
+      "x": {
+        "field": "persons_with_disability_pct",
+        "type": "quantitative",
+        "title": "Persons with disability (%) (2018)",
+        "axis": {"format": ".1f"}
+      },
+      "color": {
+        "field": "persons_with_disability_pct",
+        "type": "quantitative",
+        "legend": null,
+        "scale": {"type": "linear", "scheme": "blues"}
+      },
+      "tooltip": [
+        {"field": "lga_name", "type": "nominal", "title": "LGA"},
+        {"field": "persons_with_disability_pct", "type": "quantitative", "title": "Pct (2018)", "format": ".1f"},
+        {"field": "Local Government Areas 2021 code", "type": "nominal", "title": "LGA code"}
+      ]
+    },
+    // Layer an annotation rule + text showing the national mean
+    "layer": [
+      {
+        // base bar layer (we already defined above via mark+encoding, so this is empty to use it)
+      },
+      {
+        // horizontal mean line - aggregated single datum
+        "data": {
+          "url": csvUrl,
+          "format": {"type": "csv"}
+        },
+        "transform": [
+          {
+            "calculate": "datum[\"Persons with disability (%) (Data year: 2018)\"] == null ? null : +datum[\"Persons with disability (%) (Data year: 2018)\"]",
+            "as": "persons_with_disability_pct"
+          },
+          {"filter": "datum.persons_with_disability_pct != null"},
+          {"aggregate": [{"op":"mean","field":"persons_with_disability_pct","as":"meanDis"}], "groupby": []}
+        ],
+        "mark": {"type":"rule", "color":"#d62728", "strokeWidth":2},
+        "encoding": {
+          "x": {"aggregate": null}, // rule for horizontal uses y encoding
+          "y": {"field":"meanDis", "type":"quantitative"},
+          "size": {"value": 2}
+        }
+      },
+      {
+        // text annotation for the mean: small red label
+        "data": {
+          "url": csvUrl,
+          "format": {"type": "csv"}
+        },
+        "transform": [
+          {
+            "calculate": "datum[\"Persons with disability (%) (Data year: 2018)\"] == null ? null : +datum[\"Persons with disability (%) (Data year: 2018)\"]",
+            "as": "persons_with_disability_pct"
+          },
+          {"filter": "datum.persons_with_disability_pct != null"},
+          {"aggregate": [{"op":"mean","field":"persons_with_disability_pct","as":"meanDis"}], "groupby": []},
+          // place text at a fixed x position (near right edge): note that x uses pixels in layer text
+          {"calculate":"datum.meanDis","as":"meanDis"}
+        ],
+        "mark": {"type":"text", "align":"left", "dx": 6, "dy": -6, "fontWeight":"bold", "color":"#d62728"},
+        "encoding": {
+          "x": {"value": 10},
+          "y": {"field":"meanDis", "type":"quantitative"},
+          "text": {"signal":"format(datum.meanDis, '.2f') + ' (mean)'"}
+        }
+      }
+    ]
+  };
+
+  // embed the visualisations
+  vegaEmbed('#map', mapSpec, {actions:false}).then(result => {
+    // Map embedded
+  }).catch(console.error);
+
+  vegaEmbed('#barchart', barSpec, {actions:false}).then(result => {
+    // Bar chart embedded
+  }).catch(console.error);
+
+  </script>
+</body>
+</html>
