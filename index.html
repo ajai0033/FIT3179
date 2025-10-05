@@ -157,7 +157,9 @@
       {
         "lookup": "properties.LGA_CODE21",
         "from": {
-          "data": {"values": rows}, // use the already-parsed rows to avoid a second fetch
+          "data": {
+            "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_2021_AUST_GDA2020.json"
+          },
           "key": "lga_code",
           "fields": ["persons_with_disability_pct"]
         }
