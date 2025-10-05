@@ -168,7 +168,10 @@
       "color": {
         "field": "persons_with_disability_pct",
         "type": "quantitative",
-        "scale": {"type":"quantile"},
+        "scale": {
+          "type":"linear",
+          "domain": [0,37.2]
+        },
         "title":"Persons with disability (%) (2018)"
       },
       "tooltip": [
