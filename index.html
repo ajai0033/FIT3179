@@ -70,7 +70,7 @@
   // ---------- 2) Prepare rows (convert numeric) ----------
   const rows = parsed.data.map(row => {
     const raw = row["Persons with disability (%) (Data year: 2018)"];
-    //const num = raw === undefined || raw === "" ? null : +String(raw).replace(/,/g,'').trim();
+    const num = raw === undefined || raw === "" ? null : +String(raw).replace(/,/g,'').trim();
     return {
       lga_name: row["Local Government Areas 2021 name"],
       lga_code: row["Local Government Areas 2021 code"],
@@ -98,12 +98,12 @@
         }
       }
     ],
-    "data": {"values": rows},
-    "transform": [
-      {"filter": "datum.persons_with_disability_pct != null && datum.persons_with_disability_pct >= minPct"},
-      {"window": [{"op":"rank","as":"rank"}], "sort":[{"field":"persons_with_disability_pct","order":"descending"}]},
-      {"filter":"datum.rank <= 100"}
-    ],
+      "data": {"values": rows},
+      "transform": [
+        {"filter": "datum.persons_with_disability_pct != null && datum.persons_with_disability_pct >= minPct"},
+        {"window": [{"op":"rank","as":"rank"}], "sort":[{"field":"persons_with_disability_pct","order":"descending"}]},
+        {"filter":"datum.rank <= 100"}
+      ],
     "mark": "bar",
     "encoding": {
       "y": {
@@ -145,40 +145,72 @@
   // ---------- 4) Render the map (after bar) ----------
   const mapSpec = {
     "$schema":"https://vega.github.io/schema/vega-lite/v5.json",
-    "title":"Persons with disability (%) — by LGA (2018) — map",
+    "title":"Persons with disability (%) — by LGA (2018) — map (base + overlay)",
     "width": 900,
     "height": 600,
     "projection": {"type":"mercator"},
-    "data": {
-      "url": topojsonUrl,
-      "format": {"type":"topojson","feature": topojsonFeature}
-    },
-    "transform": [
+    "layer": [
+      // ---------- BASE LAYER: topojson ground (no joined data) ----------
       {
-        "lookup": "properties.LGA_CODE21",
-        "from": {
-          "data": {"values": rows},
-          "key": "lga_code",
-          "fields": ["persons_with_disability_pct"]
+        "data": {
+          "url": topojsonUrl,
+          "format": {"type":"topojson","feature": topojsonFeature}
+        },
+        "mark": {
+          "type": "geoshape",
+          "stroke": "#999",
+          "strokeWidth": 0.3
+        },
+        "encoding": {
+          // a subtle neutral fill so every LGA shows even if overlay has no match
+          "color": {"value": "#f2f2f2"},
+          "tooltip": [
+            {"field":"properties.LGA_NAME21","type":"nominal","title":"LGA"}
+          ]
+        }
+      },
+
+      // ---------- OVERLAY LAYER: choropleth using lookup to attach data ----------
+      {
+        "data": {
+          "url": topojsonUrl,
+          "format": {"type":"topojson","feature": topojsonFeature}
+        },
+        "transform": [
+          {
+            "lookup": "properties.LGA_CODE21",
+            "from": {
+              "data": {"values": rows},
+              "key": "lga_code",
+              "fields": ["persons_with_disability_pct"]
+            }
+          }
+        ],
+        "mark": {"type":"geoshape"},
+        "encoding": {
+          // If persons_with_disability_pct is null, use the base layer visible (light gray).
+          // Otherwise use the sequential scale.
+          "color": {
+            "condition": {
+              "test": "datum.persons_with_disability_pct == null",
+              "value": null
+            },
+            "field": "persons_with_disability_pct",
+            "type": "quantitative",
+            "scale": {
+              "type":"linear",
+              "domain": [0,37.2],
+              "scheme": "blues"
+            },
+            "title":"Persons with disability (%) (2018)"
+          },
+          "tooltip": [
+            {"field":"properties.LGA_NAME21","type":"nominal","title":"LGA"},
+            {"field":"persons_with_disability_pct","type":"quantitative","title":"Pct (2018)","format":".1f"}
+          ]
         }
       }
-    ],
-    "mark": {"type":"geoshape"},
-    "encoding": {
-      "color": {
-        "field": "persons_with_disability_pct",
-        "type": "quantitative",
-        "scale": {
-          "type":"linear",
-          "domain": [0,37.2]
-        },
-        "title":"Persons with disability (%) (2018)"
-      },
-      "tooltip": [
-        {"field":"properties.LGA_NAME21","type":"nominal","title":"LGA"},
-        {"field":"persons_with_disability_pct","type":"quantitative","title":"Pct (2018)","format":".1f"}
-      ]
-    }
+    ]
   };
 
   try {
