@@ -74,7 +74,7 @@
     return {
       lga_name: row["Local Government Areas 2021 name"],
       lga_code: row["Local Government Areas 2021 code"],
-      persons_with_disability_pct: isNaN(num) ? null : num,
+      persons_with_disability_pct: isNaN(num) ? 0 : num,
       __raw: row
     };
   });
