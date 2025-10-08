@@ -67,17 +67,25 @@
     return;
   }
 
-  // ---------- 2) Prepare rows (convert numeric) ----------
+  // ---------- 2) Prepare rows (convert numeric, keep null if missing) ----------
   const rows = parsed.data.map(row => {
-    const raw = row["Persons with disability (%) (Data year: 2018)"];
-    const num = raw === undefined || raw === "" ? 0 : +String(raw).replace(/,/g,'').trim();
-    return {
-      lga_name: row["Local Government Areas 2021 name"],
-      lga_code: row["Local Government Areas 2021 code"],
-      persons_with_disability_pct: isNaN(num) ? 0 : num,
-      __raw: row
-    };
-  });
+  const raw = row["Persons with disability (%) (Data year: 2018)"];
+  // strip whitespace and %/commas but keep empty as null
+  const cleaned = raw == null || String(raw).trim() === "" ? null : String(raw).replace(/[%\,]/g, '').trim();
+  const pct = cleaned === null ? null : Number(cleaned);
+  // Normalise LGA code: strip non-digits and keep as number when possible
+  const rawCode = row["Local Government Areas 2021 code"];
+  const codeDigits = rawCode == null ? "" : String(rawCode).replace(/\D/g, '').trim();
+  const lga_code = codeDigits === "" ? (rawCode == null ? null : String(rawCode).trim()) : Number(codeDigits);
+
+  return {
+    lga_name: row["Local Government Areas 2021 name"] && String(row["Local Government Areas 2021 name"]).trim(),
+    lga_code,
+    persons_with_disability_pct: Number.isFinite(pct) ? pct : null,
+    __raw: row
+  };
+});
+
 
   // ---------- 3) Bar chart spec (inline data) ----------
   const barSpec = {
@@ -143,75 +151,87 @@
   }
 
   // ---------- 4) Render the map (after bar) ----------
-  const mapSpec = {
-    "$schema":"https://vega.github.io/schema/vega-lite/v5.json",
-    "title":"Persons with disability (%) — by LGA (2018) — map (base + overlay)",
-    "width": 900,
-    "height": 600,
-    "projection": {"type":"mercator"},
-    "layer": [
-      // ---------- BASE LAYER: topojson ground (no joined data) ----------
-      {
-        "data": {
-          "url": topojsonUrl,
-          "format": {"type":"topojson","feature": topojsonFeature}
-        },
-        "mark": {
-          "type": "geoshape",
-          "stroke": "#999",
-          "strokeWidth": 0.3
-        },
-        "encoding": {
-          // a subtle neutral fill so every LGA shows even if overlay has no match
-          "color": {"value": "#f2f2f2"},
-          "tooltip": [
-            {"field":"properties.LGA_NAME21","type":"nominal","title":"LGA"}
-          ]
-        }
+const mapSpec = {
+  "$schema":"https://vega.github.io/schema/vega-lite/v5.json",
+  "title":"Persons with disability (%) — by LGA (2018) — map",
+  "width": 900,
+  "height": 600,
+  "projection": {"type":"mercator"},
+  "layer": [
+    // BASE: neutral background (all LGAs visible)
+    {
+      "data": {
+        "url": topojsonUrl,
+        "format": {"type":"topojson","feature": topojsonFeature}
       },
-
-      // ---------- OVERLAY LAYER: choropleth using lookup to attach data ----------
-      {
-        "data": {
-          "url": topojsonUrl,
-          "format": {"type":"topojson","feature": topojsonFeature}
-        },
-        "transform": [
-          {
-            "lookup": "properties.LGA_CODE21",
-            "from": {
-              "data": {"values": rows},
-              "key": "lga_code",
-              "fields": ["persons_with_disability_pct"]
-            }
-          }
-        ],
-        "mark": {"type":"geoshape"},
-        "encoding": {
-          // If persons_with_disability_pct is null, use the base layer visible (light gray).
-          // Otherwise use the sequential scale.
-          "color": {
-            "condition": {
-              "test": "datum.persons_with_disability_pct == null",
-              "value": null
-            },
-            "field": "persons_with_disability_pct",
-            "type": "quantitative",
-            "scale": {
-              "type":"linear",
-              "domain": [0,37.2],
-              "scheme": "blues"
-            },
-            "title":"Persons with disability (%) (2018)"
-          },
-          "tooltip": [
-            {"field":"properties.LGA_NAME21","type":"nominal","title":"LGA"},
-            {"field":"persons_with_disability_pct","type":"quantitative","title":"Pct (2018)","format":".1f"}
-          ]
-        }
+      "mark": {
+        "type": "geoshape",
+        "stroke": "#999",
+        "strokeWidth": 0.3
+      },
+      "encoding": {
+        "color": {"value": "#f2f2f2"},
+        "tooltip": [
+          {"field":"properties.LGA_NAME21","type":"nominal","title":"LGA"}
+        ]
       }
-    ]
-  };
+    },
+
+    // OVERLAY: lookup + choropleth + robust tooltips
+    {
+      "data": {
+        "url": topojsonUrl,
+        "format": {"type":"topojson","feature": topojsonFeature}
+      },
+      "transform": [
+        // attach persons_with_disability_pct from our `rows` array
+        {
+          "lookup": "properties.LGA_CODE21",
+          "from": {
+            "data": {"values": rows},
+            "key": "lga_code",
+            "fields": ["persons_with_disability_pct"]
+          }
+        },
+        // normalise to a numeric value we can use for colour
+        {
+          "calculate": "datum.persons_with_disability_pct == null ? null : +datum.persons_with_disability_pct",
+          "as": "pct_num"
+        },
+        // human-friendly label for tooltip (uses format if available)
+        {
+          "calculate": "datum.pct_num == null ? 'No data' : (format(datum.pct_num, '.1f') + '%')",
+          "as": "pct_label"
+        }
+      ],
+      "mark": {"type":"geoshape"},
+      "encoding": {
+        // if pct_num is null -> use a neutral fill so the polygon stays visible & interactive
+        "color": {
+          "condition": [
+            {
+              "test": "datum.pct_num == null",
+              "value": "#f2f2f2"
+            }
+          ],
+          "field": "pct_num",
+          "type": "quantitative",
+          "scale": {
+            "type":"linear",
+            "domain": [0,37.2],
+            "scheme": "blues"
+          },
+          "legend": {"title": "Percent with disability"}
+        },
+        "tooltip": [
+          {"field":"properties.LGA_NAME21","type":"nominal","title":"LGA"},
+          {"field":"pct_label","type":"nominal","title":"Pct (2018)"}
+        ]
+      }
+    }
+  ]
+};
+
 
   try {
     await vegaEmbed('#map', mapSpec, {actions:false});
