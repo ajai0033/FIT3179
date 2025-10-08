@@ -151,86 +151,49 @@
   }
 
   // ---------- 4) Render the map (after bar) ----------
-const mapSpec = {
-  "$schema":"https://vega.github.io/schema/vega-lite/v5.json",
-  "title":"Persons with disability (%) — by LGA (2018) — map",
-  "width": 900,
-  "height": 600,
-  "projection": {"type":"mercator"},
-  "layer": [
-    // BASE: neutral background (all LGAs visible)
-    {
+  const mapSpec = {
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "title": "Persons with disability (%) — by LGA (2018)",
+      "width": 900,
+      "height": 700,
+      "projection": {"type": "mercator"},
       "data": {
-        "url": topojsonUrl,
-        "format": {"type":"topojson","feature": topojsonFeature}
-      },
-      "mark": {
-        "type": "geoshape",
-        "stroke": "#999",
-        "strokeWidth": 0.3
-      },
-      "encoding": {
-        "color": {"value": "#f2f2f2"},
-        "tooltip": [
-          {"field":"properties.LGA_NAME21","type":"nominal","title":"LGA"}
-        ]
-      }
-    },
-
-    // OVERLAY: lookup + choropleth + robust tooltips
-    {
-      "data": {
-        "url": topojsonUrl,
-        "format": {"type":"topojson","feature": topojsonFeature}
+        "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_2021_AUST_GDA2020.json",
+        "format": {"type": "topojson", "feature": "LGA_2021_AUST_GDA2020"}
       },
       "transform": [
-        // attach persons_with_disability_pct from our `rows` array
         {
           "lookup": "properties.LGA_CODE21",
           "from": {
-            "data": {"values": rows},
-            "key": "lga_code",
-            "fields": ["persons_with_disability_pct"]
+            "data": {
+              "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-9-Homework/LGA_hlth_disab_DbR_Nov24_-7869466443108774970%20(2).csv"
+            },
+            "key": "Local Government Areas 2021 code",
+            "fields": ["Persons with disability (%) (Data year: 2018)"]
           }
         },
-        // normalise to a numeric value we can use for colour
         {
-          "calculate": "datum.persons_with_disability_pct == null ? null : +datum.persons_with_disability_pct",
-          "as": "pct_num"
-        },
-        // human-friendly label for tooltip (uses format if available)
-        {
-          "calculate": "datum.pct_num == null ? 'No data' : (format(datum.pct_num, '.1f') + '%')",
-          "as": "pct_label"
+          "calculate": "datum[\"Persons with disability (%) (Data year: 2018)\"] == null ? null : +datum[\"Persons with disability (%) (Data year: 2018)\"]",
+          "as": "persons_with_disability_pct"
         }
       ],
-      "mark": {"type":"geoshape"},
+      "mark": {"type": "geoshape"},
       "encoding": {
-        // if pct_num is null -> use a neutral fill so the polygon stays visible & interactive
         "color": {
-          "condition": [
-            {
-              "test": "datum.pct_num == null",
-              "value": "#f2f2f2"
-            }
-          ],
-          "field": "pct_num",
+          "field": "persons_with_disability_pct",
           "type": "quantitative",
           "scale": {
-            "type":"linear",
+            "type": "linear",
             "domain": [0,37.2],
-            "scheme": "blues"
-          },
-          "legend": {"title": "Percent with disability"}
+        },
+        "legend": {"title": "Percent with disability"}
         },
         "tooltip": [
-          {"field":"properties.LGA_NAME21","type":"nominal","title":"LGA"},
-          {"field":"pct_label","type":"nominal","title":"Pct (2018)"}
+          {"field": "properties.LGA_NAME21", "type": "nominal", "title": "LGA"},
+          {"field": "persons_with_disability_pct", "type": "quantitative", "title": "Pct (2018)"}
         ]
       }
-    }
-  ]
-};
+    };
 
 
   try {
