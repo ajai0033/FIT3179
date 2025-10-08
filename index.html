@@ -70,7 +70,7 @@
   // ---------- 2) Prepare rows (convert numeric) ----------
   const rows = parsed.data.map(row => {
     const raw = row["Persons with disability (%) (Data year: 2018)"];
-    const num = raw === undefined || raw === "" ? null : +String(raw).replace(/,/g,'').trim();
+    const num = raw === undefined || raw === "" ? 0 : +String(raw).replace(/,/g,'').trim();
     return {
       lga_name: row["Local Government Areas 2021 name"],
       lga_code: row["Local Government Areas 2021 code"],
