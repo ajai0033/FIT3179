@@ -1,67 +1,82 @@
 {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-    "description": "Scatter plot of % private health insurance vs population by LGA",
+    "description": "Scatter: percent private health insurance vs population — fixed (no String() calls).",
     "width": 900,
     "height": 600,
     "title": "Private Health Insurance (%) vs Population by LGA (2022)",
     "data": {
-      "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-10-Homework/LGA_Health_Insurance_Clean.csv",
+      "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-10-Homework/LGA_Health_population.csv",
       "format": {"type": "csv", "trim": true}
     },
     "transform": [
       {
-        "lookup": "lga_code",
-        "from": {
-          "data": {
-            "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-10-Homework/LGA_Population_2022_Clean.csv",
-            "format": {"type": "csv", "trim": true}
-          },
-          "key": "lga_code",
-          "fields": ["population"]
-        }
-      },
-      {
-        "calculate": "datum.insured == null ? 0 : +datum.insured",
-        "as": "insured"
-      },
-      {
-        "calculate": "datum.population == null ? null : +datum.population",
+        "calculate": "datum['Population (2022)'] == null || datum['Population (2022)'] == '' ? null : +(('' + datum['Population (2022)']).replace(/[^0-9.]/g, ''))",
         "as": "population"
       },
       {
-        "calculate": "datum.insured / datum.population * 100",
+        "calculate": "datum['Persons who reported having private health insurance (no.) (Data year: 2022)'] == null || datum['Persons who reported having private health insurance (no.) (Data year: 2022)'] == '' ? 0 : +(('' + datum['Persons who reported having private health insurance (no.) (Data year: 2022)']).replace(/[^0-9.]/g, ''))",
+        "as": "insured"
+      },
+      {
+        "calculate": "datum.population == null || datum.population == 0 ? null : (datum.insured / datum.population) * 100",
         "as": "pct_insured"
+      },
+      {
+        "calculate": "datum['Local Government Areas 2021 name']",
+        "as": "lga_name"
+      },
+      {
+        "calculate": "datum['Local Government Areas 2021 code'] == null || datum['Local Government Areas 2021 code'] == '' ? null : ('' + datum['Local Government Areas 2021 code'])",
+        "as": "lga_code"
+      },
+      {
+        "filter": "datum.population != null && datum.population > 0"
       }
     ],
-    "mark": {"type": "circle", "tooltip": true},
+    "selection": {
+      "sel": {
+        "type": "single",
+        "fields": ["lga_code"],
+        "on": "click",
+        "empty": "all"
+      }
+    },
+    "mark": {"type": "point", "tooltip": true, "filled": true},
     "encoding": {
       "x": {
         "field": "population",
         "type": "quantitative",
         "title": "Population (2022)",
-        "scale": {"type": "log"}
+        "scale": {"type": "log", "nice": true}
       },
       "y": {
         "field": "pct_insured",
         "type": "quantitative",
-        "title": "Percent with Private Health Insurance (%)"
+        "title": "Percent with Private Health Insurance (%)",
+        "axis": {"format": ".1f"}
       },
       "size": {
         "field": "population",
         "type": "quantitative",
-        "legend": {"title": "Population size"}
+        "legend": {"title": "Population size"},
+        "scale": {"range": [50, 2500]}
       },
       "color": {
         "field": "pct_insured",
         "type": "quantitative",
         "scale": {"scheme": "blues"},
-        "legend": {"title": "% Insured"}
+        "legend": {"title": "% insured"}
+      },
+      "opacity": {
+        "condition": {"selection": "sel", "value": 1},
+        "value": 0.35
       },
       "tooltip": [
         {"field": "lga_name", "type": "nominal", "title": "LGA"},
-        {"field": "population", "type": "quantitative", "title": "Population"},
-        {"field": "insured", "type": "quantitative", "title": "Number Insured"},
-        {"field": "pct_insured", "type": "quantitative", "title": "% Insured", "format": ".1f"}
+        {"field": "lga_code", "type": "nominal", "title": "LGA code"},
+        {"field": "population", "type": "quantitative", "title": "Population (2022)"},
+        {"field": "insured", "type": "quantitative", "title": "Number insured"},
+        {"field": "pct_insured", "type": "quantitative", "title": "% insured", "format": ".1f"}
       ]
     }
   }
