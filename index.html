@@ -2,210 +2,251 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Disability rates — bar then map</title>
+  <title>Coverage vs Need — Scatter explorer</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; padding: 18px; background:#f7f7f8; color:#111 }
-    .vis { margin: 18px auto; width: 95%; max-width: 1000px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding:12px; border-radius:6px; background:#fff; }
-    #status { color:#b33; font-weight:600; margin:8px 0; }
-    h1 { margin-bottom:6px; font-size:1.2rem }
-    .note { margin-top:0; color:#444; font-size:0.95rem; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; padding:18px; background:#f7f7f8; color:#111 }
+    .controls { display:flex; gap:12px; align-items:center; margin-bottom:12px; flex-wrap:wrap }
+    label { font-size:0.95rem; color:#333 }
+    select { padding:6px; border-radius:6px; border:1px solid #ddd }
+    #vis { box-shadow: 0 2px 8px rgba(0,0,0,0.06); background:#fff; padding:12px; border-radius:6px }
+    .note { color:#555; font-size:0.95rem; margin-top:8px }
   </style>
 </head>
 <body>
-  <h1>Persons with disability (%) — by LGA (2018)</h1>
-  <p class="note">Bar chart (ranked LGAs) appears first. Scroll to see the map below.</p>
+  <h2>Coverage vs Need — Interactive Scatter Explorer</h2>
 
-  <div id="status" class="vis">Initializing...</div>
+  <div class="controls">
+    <label>
+      X axis:
+      <select id="xField"></select>
+    </label>
 
-  <!-- Bar chart goes first -->
-  <div id="barchart" class="vis"></div>
+    <label>
+      Y axis:
+      <select id="yField"></select>
+    </label>
 
-  <!-- Map goes below -->
-  <div id="map" class="vis"></div>
+    <label>
+      Colour by:
+      <select id="colorField"></select>
+    </label>
+
+    <button id="rerender">Render chart</button>
+  </div>
+
+  <div id="vis"></div>
+  <div id="status" class="note">Loading data…</div>
 
 <script>
 (async function(){
-  const statusEl = () => document.getElementById('status');
-  function showStatus(msg, isError=false){
-    const el = statusEl();
-    el.textContent = msg;
-    el.style.color = isError ? '#b33' : '#333';
-  }
+  const statusEl = (m) => document.getElementById('status').textContent = m;
 
-  // ---------- CONFIG: update these if you rename files ----------
+  // ---------- CONFIG: update URLs if your files are elsewhere ----------
   const csvRawUrl = "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_hlth_disab_DbR_Nov24_-7869466443108774970%20%282%29.csv";
-  const topojsonUrl = "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_2021_AUST_GDA2020.json";
-  const topojsonFeature = "LGA_2021_AUST_GDA2020";
+  const popCsvUrl = "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-10-Homework/LGA_Population_2022.csv";
 
-  // ---------- 1) Fetch & parse CSV ----------
-  showStatus("Fetching CSV...");
-  let csvText;
+  statusEl("Fetching CSVs...");
+  let mainText;
+  let popText;
   try {
-    const resp = await fetch(csvRawUrl);
-    if (!resp.ok) throw new Error(`CSV fetch failed: ${resp.status} ${resp.statusText}`);
-    csvText = await resp.text();
-    showStatus("CSV fetched. Parsing...");
+    const [r1, r2] = await Promise.all([fetch(csvRawUrl), fetch(popCsvUrl)]);
+    if (!r1.ok) throw new Error("Failed to fetch main CSV: " + r1.status);
+    if (!r2.ok) throw new Error("Failed to fetch population CSV: " + r2.status);
+    mainText = await r1.text();
+    popText = await r2.text();
+    statusEl("CSV files fetched. Parsing...");
   } catch (err) {
     console.error(err);
-    showStatus("CSV fetch failed: " + err.message, true);
+    statusEl("Error fetching CSVs: " + err.message);
     return;
   }
 
-  let parsed;
-  try {
-    parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
-    if (!parsed || !parsed.data) throw new Error("CSV parse returned no data");
-    showStatus(`CSV parsed: ${parsed.data.length} rows. Rendering bar chart...`);
-  } catch (err) {
-    console.error(err);
-    showStatus("CSV parse failed: " + err.message, true);
+  // ---------- parse with Papa ----------
+  const mainParsed = Papa.parse(mainText, { header: true, skipEmptyLines:true });
+  const popParsed = Papa.parse(popText, { header: true, skipEmptyLines:true });
+
+  if (!mainParsed || !mainParsed.data || !popParsed || !popParsed.data) {
+    statusEl("CSV parse failed.");
     return;
   }
+  statusEl(`Parsed ${mainParsed.data.length} main rows and ${popParsed.data.length} population rows.`);
 
-  // ---------- 2) Prepare rows (convert numeric, keep null if missing) ----------
-  const rows = parsed.data.map(row => {
-  const raw = row["Persons with disability (%) (Data year: 2018)"];
-  // strip whitespace and %/commas but keep empty as null
-  const cleaned = raw == null || String(raw).trim() === "" ? null : String(raw).replace(/[%\,]/g, '').trim();
-  const pct = cleaned === null ? null : Number(cleaned);
-  // Normalise LGA code: strip non-digits and keep as number when possible
-  const rawCode = row["Local Government Areas 2021 code"];
-  const codeDigits = rawCode == null ? "" : String(rawCode).replace(/\D/g, '').trim();
-  const lga_code = codeDigits === "" ? (rawCode == null ? null : String(rawCode).trim()) : Number(codeDigits);
+  // ---------- helper: sanitize numeric strings ----------
+  function toNum(v) {
+    if (v == null) return null;
+    const s = String(v).trim();
+    if (s === "") return null;
+    // remove commas and percent signs and any stray text
+    const cleaned = s.replace(/[, %\u00A0]/g,'').replace(/[^\d.\-]/g,'');
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : null;
+  }
 
-  return {
-    lga_name: row["Local Government Areas 2021 name"] && String(row["Local Government Areas 2021 name"]).trim(),
-    lga_code,
-    persons_with_disability_pct: Number.isFinite(pct) ? pct : null,
-    __raw: row
-  };
-});
+  // ---------- build lookup map for population by LGA code ----------
+  // population CSV sample header: "LGA code","LGA name (a)","2022 (no.)",...
+  const popMap = new Map();
+  for (const r of popParsed.data) {
+    // Accept either "LGA code" or "LGA code" trimmed
+    const codeRaw = r["LGA code"] ?? r["Local Government Areas 2021 code"] ?? r["LGA_code"] ?? r["lga_code"] ?? null;
+    const code = codeRaw == null ? null : String(codeRaw).replace(/\D/g,'').trim();
+    const popVal = toNum(r["2022 (no.)"] ?? r["2022"] ?? r["2022 (no.) "] ?? r["2022 (no.)"]);
+    if (code) popMap.set(code, popVal);
+  }
 
+  // ---------- prepare rows by joining main CSV and population ----------
+  const FIELD_INSURANCE = "Persons who reported having private health insurance (no.) (Data year: 2022)";
+  const FIELD_DISABILITY_PCT = "Persons with disability (%) (Data year: 2018)";
+  const FIELD_CARERS_PCT = "Persons who are carers (%) (Data year: 2018)";
+  const FIELD_MENTAL_PCT = "Persons with long-term health condition(s): Mental health condition (including depression or anxiety) (%) (Data year: 2021)";
+  const FIELD_ARS = "Persons with long-term health condition(s): Arthritis (%) (Data year: 2021)";
 
-  // ---------- 3) Bar chart spec (inline data) ----------
-  const barSpec = {
-    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-    "title": "LGAs ranked by persons with disability (%) — filterable",
-    "width": 900,
-    "height": 700,
-    "params": [
-      {
-        "name": "minPct",
-        "value": 0,
-        "bind": {
-          "input": "range",
-          "min": 0,
-          "max": 40,
-          "step": 0.1,
-          "name": "Minimum disability % to show: "
-        }
-      }
-    ],
-      "data": {"values": rows},
-      "transform": [
-        {"filter": "datum.persons_with_disability_pct != null && datum.persons_with_disability_pct >= minPct"},
-        {"window": [{"op":"rank","as":"rank"}], "sort":[{"field":"persons_with_disability_pct","order":"descending"}]},
-        {"filter":"datum.rank <= 100"}
-      ],
-    "mark": "bar",
-    "encoding": {
-      "y": {
-        "field": "lga_name",
-        "type": "ordinal",
-        "sort": {"field":"persons_with_disability_pct","order":"descending"},
-        "title": "LGA",
-        "axis": {"labelLimit": 300, "labelFontSize": 11}
-      },
-      "x": {
-        "field": "persons_with_disability_pct",
-        "type": "quantitative",
-        "title": "Persons with disability (%) (2018)",
-        "axis": {"format": ".1f"}
-      },
-      "color": {
-        "field": "persons_with_disability_pct",
-        "type": "quantitative",
-        "scale": {"scheme": "blues"},
-        "legend": null
-      },
-      "tooltip": [
-        {"field":"lga_name","type":"nominal","title":"LGA"},
-        {"field":"lga_code","type":"nominal","title":"LGA code"},
-        {"field":"persons_with_disability_pct","type":"quantitative","title":"Pct (2018)","format":".1f"}
-      ]
+  const rows = mainParsed.data.map(r => {
+    // standardise LGA code key as digits only
+    const codeRaw = r["Local Government Areas 2021 code"] ?? r["Local Government Areas 2021 code "];
+    const code = codeRaw == null ? null : String(codeRaw).replace(/\D/g,'').trim();
+    const lgaName = r["Local Government Areas 2021 name"] ?? r["Local Government Areas 2021 name "];
+
+    const privateCount = toNum(r[FIELD_INSURANCE]);
+    const pop = code ? popMap.get(code) ?? null : null;
+    const insurance_pct = (privateCount != null && pop != null && pop > 0) ? (privateCount / pop) * 100 : null;
+
+    const disability_pct = toNum(r[FIELD_DISABILITY_PCT]);
+    const carers_pct = toNum(r[FIELD_CARERS_PCT]);
+    const mental_pct = toNum(r[FIELD_MENTAL_PCT]);
+    const arthritis_pct = toNum(r[FIELD_ARS]);
+
+    return {
+      lga_name: lgaName,
+      lga_code: code,
+      private_count: privateCount,
+      population_2022: pop,
+      insurance_pct: insurance_pct,
+      disability_pct: disability_pct,
+      carers_pct: carers_pct,
+      mental_pct: mental_pct,
+      arthritis_pct: arthritis_pct,
+      __raw: r
+    };
+  });
+
+  statusEl("Prepared joined dataset. Building UI...");
+
+  // ---------- populate dropdowns ----------
+  const xSelect = document.getElementById('xField');
+  const ySelect = document.getElementById('yField');
+  const colorSelect = document.getElementById('colorField');
+
+  // friendly options mapping (key -> label)
+  const options = [
+    {key:"insurance_pct", label:"Private insurance (%)"},
+    {key:"disability_pct", label:"Persons with disability (%) (2018)"},
+    {key:"carers_pct", label:"Persons who are carers (%) (2018)"},
+    {key:"mental_pct", label:"Mental health condition (%) (2021)"},
+    {key:"arthritis_pct", label:"Arthritis (%) (2021)"},
+    {key:"population_2022", label:"Population (2022)"},
+    {key:"private_count", label:"Private insurance (count)"}
+  ];
+
+  function addOptions(sel) {
+    sel.innerHTML = "";
+    for (const o of options) {
+      const opt = document.createElement('option');
+      opt.value = o.key;
+      opt.textContent = o.label;
+      sel.appendChild(opt);
     }
-  };
-
-  try {
-    await vegaEmbed('#barchart', barSpec, {actions:false});
-    showStatus("Bar chart rendered. Now rendering map below...");
-  } catch (err) {
-    console.error("Bar embed error:", err);
-    showStatus("Bar embed failed — see console.", true);
-    return;
   }
+  addOptions(xSelect); addOptions(ySelect); addOptions(colorSelect);
+  // set defaults
+  xSelect.value = "insurance_pct";
+  ySelect.value = "disability_pct";
+  colorSelect.value = "mental_pct";
 
-  // ---------- 4) Render the map (after bar) ----------
-  const mapSpec = {
+  // ---------- render function ----------
+  async function renderScatter() {
+    const xField = xSelect.value;
+    const yField = ySelect.value;
+    const colorField = colorSelect.value;
+
+    // build Vega-Lite spec programmatically so chosen fields are embedded
+    const spec = {
       "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-      "title": "Persons with disability (%) — by LGA (2018)",
+      "description": "Coverage vs Need scatter explorer",
       "width": 900,
-      "height": 700,
-      "projection": {"type": "mercator"},
-      "data": {
-        "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_2021_AUST_GDA2020.json",
-        "format": {"type": "topojson", "feature": "LGA_2021_AUST_GDA2020"}
-      },
-      "transform": [
+      "height": 600,
+      "data": {"values": rows},
+      "params": [
         {
-          "lookup": "properties.LGA_CODE21",
-          "from": {
-            "data": {
-              "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-9-Homework/LGA_hlth_disab_DbR_Nov24_-7869466443108774970%20(2).csv"
-            },
-            "key": "Local Government Areas 2021 code",
-            "fields": ["Persons with disability (%) (Data year: 2018)"]
-          }
-        },
-        {
-          "calculate": "datum[\"Persons with disability (%) (Data year: 2018)\"] == null ? null : +datum[\"Persons with disability (%) (Data year: 2018)\"]",
-          "as": "persons_with_disability_pct"
+          "name": "sel", "select": {"type":"single", "fields":["lga_code"], "on":"click", "empty":"none"}
         }
       ],
-      "mark": {"type": "geoshape"},
+      "mark": {"type":"point", "filled": true, "tooltip": true},
       "encoding": {
-        "color": {
-          "field": "persons_with_disability_pct",
-          "type": "quantitative",
-          "scale": {
-            "type": "linear",
-            "domain": [0,37.2],
+        "x": {
+          "field": xField,
+          "type": (xField === "population_2022" || xField === "private_count") ? "quantitative" : "quantitative",
+          "title": options.find(o=>o.key===xField).label,
+          "axis": {"format": xField.endsWith("_pct") ? ".1f" : undefined}
         },
-        "legend": {"title": "Percent with disability"}
+        "y": {
+          "field": yField,
+          "type": (yField === "population_2022" || yField === "private_count") ? "quantitative" : "quantitative",
+          "title": options.find(o=>o.key===yField).label,
+          "axis": {"format": yField.endsWith("_pct") ? ".1f" : undefined}
+        },
+        "color": {
+          "field": colorField,
+          "type": "quantitative",
+          "scale": {"scheme":"blues"},
+          "legend": {"title": options.find(o=>o.key===colorField).label}
+        },
+        "size": {
+          "field": "population_2022",
+          "type": "quantitative",
+          "legend": null,
+          "scale": {"range":[20,8000]}
+        },
+        "opacity": {
+          "condition": {"param":"sel","value":1},
+          "value": 0.35
         },
         "tooltip": [
-          {"field": "properties.LGA_NAME21", "type": "nominal", "title": "LGA"},
-          {"field": "persons_with_disability_pct", "type": "quantitative", "title": "Pct (2018)"}
+          {"field":"lga_name","type":"nominal","title":"LGA"},
+          {"field":"lga_code","type":"nominal","title":"LGA code"},
+          {"field":"insurance_pct","type":"quantitative","title":"Insurance %","format":".1f"},
+          {"field":"private_count","type":"quantitative","title":"Insurance (count)"},
+          {"field":"population_2022","type":"quantitative","title":"Population (2022)"},
+          {"field":"disability_pct","type":"quantitative","title":"Disability % (2018)","format":".1f"},
+          {"field":"carers_pct","type":"quantitative","title":"Carers % (2018)","format":".1f"},
+          {"field":"mental_pct","type":"quantitative","title":"Mental health % (2021)","format":".1f"}
         ]
       }
     };
 
+    // embed
+    statusEl("Rendering chart...");
+    const res = await vegaEmbed('#vis', spec, {actions:false});
+    statusEl("Chart rendered. Click a point to select it (selection signal 'sel').");
 
-  try {
-    await vegaEmbed('#map', mapSpec, {actions:false});
-    showStatus("Map rendered. Page complete.");
-  } catch (err) {
-    console.error("Map embed error:", err);
-    showStatus("Map embed failed — see console.", true);
-    return;
+    // res.view is the Vega view; you can add a listener for selection changes if you want:
+    // Example: res.view.addSignalListener('sel', (name, value) => { console.log('selection', value); });
+    // Use this to link to your map: when selection exists get selected lga_code -> highlight polygon on map.
+    // e.g. res.view.addSignalListener('sel', (n,v)=> { if(v && v.lga_code) mapView.signal('selectedCode', v.lga_code).run(); });
+
+    // Expose view for debugging
+    window.scatterView = res.view;
   }
 
-})(); // IIFE
+  // initial render
+  document.getElementById('rerender').addEventListener('click', renderScatter);
+  renderScatter();
+
+})();
 </script>
 </body>
 </html>
