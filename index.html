@@ -2,16 +2,23 @@
 <html>
 <head>
   <meta charset="utf-8"/>
-  <title>Private Insurance scatter (preprocess JS)</title>
+  <title>Private Insurance scatter — legend selection by size</title>
   <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; padding:18px; background:#f7f7f8; color:#111 }
+    #vis { box-shadow:0 2px 8px rgba(0,0,0,0.06); background:#fff; padding:12px; border-radius:8px; max-width:980px; margin:12px auto;}
+  </style>
 </head>
 <body>
+  <h2 style="text-align:center">Private Health Insurance (%) vs Population — select size from legend</h2>
   <div id="vis"></div>
+
 <script>
 (async function(){
+  // raw CSV URL you provided
   const url = "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-10-Homework/LGA_Health_population.csv";
 
   // fetch + parse
@@ -28,14 +35,13 @@
     if (v == null) return null;
     const s = String(v).trim();
     if (s === '') return null;
-    // remove any non-digit or decimal characters (keeps digits and ".")
     const cleaned = s.replace(/[^0-9.]/g, '');
-    // guard against empty after cleaning
     return cleaned === '' ? null : Number(cleaned);
   };
 
-  // build cleaned rows
-  const rows = parsed.data.map(r => {
+  // compute size categories thresholds — you can tweak thresholds as you like
+  // Here we use: Small < 5k, Medium 5k–50k, Large > 50k
+  const rowsRaw = parsed.data.map(r => {
     const pop = cleanNum(r['Population (2022)']);
     const insured = cleanNum(r['Persons who reported having private health insurance (no.) (Data year: 2022)']) ?? 0;
     const pct = (pop != null && pop > 0) ? (insured / pop) * 100 : null;
@@ -46,33 +52,88 @@
       insured: insured,
       pct_insured: pct
     };
-  })
-  // optionally filter out rows without population
-  .filter(d => d.population != null && d.population > 0);
+  });
 
-  // simple vega-lite spec using cleaned rows
+  // filter valid rows and compute bins
+  const rows = rowsRaw
+    .filter(d => d.population != null && d.population > 0)
+    .map(d => {
+      let size_cat;
+      if (d.population < 5000) size_cat = "Small (<5k)";
+      else if (d.population < 50000) size_cat = "Medium (5k–50k)";
+      else size_cat = "Large (>50k)";
+      return {...d, size_cat};
+    });
+
+  // Vega-Lite spec
   const spec = {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-    "width": 900, "height": 600,
-    "title": "Private Health Insurance (%) vs Population by LGA (2022)",
-    "data": { "values": rows },
-    "mark": {"type":"point","filled":true,"tooltip":true},
+    "width": 920,
+    "height": 600,
+    "description": "Scatter: percent private health insurance vs population with legend-driven selection by size category.",
+    "data": {"values": rows},
+    // multi selection bound to color encoding (so legend clicks toggle categories)
+    "selection": {
+      "sizeSel": {
+        "type": "multi",
+        "encodings": ["color"],
+        "on": "click",
+        "empty": "all"
+      }
+    },
+    "mark": {"type": "point", "filled": true, "tooltip": true},
     "encoding": {
-      "x": {"field":"population","type":"quantitative","title":"Population (2022)","scale":{"type":"log","nice":true}},
-      "y": {"field":"pct_insured","type":"quantitative","title":"Percent with Private Health Insurance (%)","axis":{"format":".1f"}},
-      "size": {"field":"population","type":"quantitative","legend":{"title":"Population size"},"scale":{"range":[50,2500]}},
-      "color": {"field":"pct_insured","type":"quantitative","scale":{"scheme":"blues"},"legend":{"title":"% insured"}},
+      "x": {
+        "field": "population",
+        "type": "quantitative",
+        "title": "Population (2022)",
+        "scale": {"type": "log", "nice": true}
+      },
+      "y": {
+        "field": "pct_insured",
+        "type": "quantitative",
+        "title": "Percent with Private Health Insurance (%)",
+        "axis": {"format": ".1f"}
+      },
+      // size still continuous (population) — circle area will vary
+      "size": {
+        "field": "population",
+        "type": "quantitative",
+        "legend": {"title": "Population (area)"},
+        "scale": {"range": [50, 2500]}
+      },
+      // color is the categorical size category — legend will show three entries
+      "color": {
+        "field": "size_cat",
+        "type": "nominal",
+        "legend": {"title": "Population category"},
+        "scale": {"domain":["Small (<5k)","Medium (5k–50k)","Large (>50k)"], "range":["#66c2a5","#fc8d62","#8da0cb"]}
+      },
+      // opacity depends on selection: selected legend categories show full, others fade
+      "opacity": {
+        "condition": {"selection": "sizeSel", "value": 1},
+        "value": 0.15
+      },
       "tooltip": [
         {"field":"lga_name","type":"nominal","title":"LGA"},
         {"field":"lga_code","type":"nominal","title":"LGA code"},
         {"field":"population","type":"quantitative","title":"Population (2022)"},
         {"field":"insured","type":"quantitative","title":"Number insured"},
-        {"field":"pct_insured","type":"quantitative","title":"% insured","format":".1f"}
+        {"field":"pct_insured","type":"quantitative","title":"% insured","format":".1f"},
+        {"field":"size_cat","type":"nominal","title":"Size category"}
       ]
     }
   };
 
-  vegaEmbed('#vis', spec, {actions:false});
+  // embed
+  vegaEmbed('#vis', spec, {actions:false}).then(result => {
+    // expose view for debugging/linking if you want
+    window.insuranceView = result.view;
+  }).catch(err => {
+    console.error(err);
+    alert("Vega embed error: " + err.message);
+  });
+
 })();
 </script>
 </body>
