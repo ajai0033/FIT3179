@@ -105,28 +105,59 @@
   }
 
   function buildScatterSpec(dataValues, xFieldKey){
-    return {
-      "$schema":"https://vega.github.io/schema/vega-lite/v5.json",
-      "width":500,
-      "height": 500,
-      "data":{"values":dataValues},
-      "mark":{"type":"point","filled":true,"tooltip":true},
-      "encoding":{
-        "x":{"field":xFieldKey,"type":"quantitative","title":xLabelForKey(xFieldKey)},
-        "y":{"field":"pct_insured","type":"quantitative","title":"Percent with Private Health Insurance (%)"},
-        "size":{"field":"population","type":"quantitative","scale":{"range":[50,2000]}},
-        "color":{"field":"size_cat",
-        "type":"nominal","legend":{"title":"Population category"},"scale":{"domain":["Small (<5k)","Medium (5k–50k)","Large (>50k)"],"range":["#66c2a5","#fc8d62","#8da0cb"]}},
-        "tooltip":[
-          {"field":"lga_name","type":"nominal","title":"LGA"},
-          {"field":"population","type":"quantitative","title":"Population"},
-          {"field":"insured","type":"quantitative","title":"Number insured"},
-          {"field":"pct_insured","type":"quantitative","title":"% insured","format":".1f"},
-          {"field":xFieldKey,"type":"quantitative","title":xLabelForKey(xFieldKey)}
-        ]
+  return {
+    "$schema":"https://vega.github.io/schema/vega-lite/v5.json",
+    "width":500,
+    "height":500,
+    "layer":[
+      {
+        "data":{"values":dataValues},
+        "mark":{"type":"point","filled":true,"tooltip":true},
+        "encoding":{
+          "x":{"field":xFieldKey,"type":"quantitative","title":xLabelForKey(xFieldKey)},
+          "y":{"field":"pct_insured","type":"quantitative","title":"Percent with Private Health Insurance (%)"},
+          "size":{
+            "field":"population",
+            "type":"quantitative",
+            "scale":{"range":[50,2000]},
+            "legend":{"title":"Population size"}
+          },
+          "color":{
+            "field":"size_cat",
+            "type":"nominal",
+            "legend":{"title":"Population category"},
+            "scale":{"domain":["Small (<5k)","Medium (5k–50k)","Large (>50k)"],"range":["#66c2a5","#fc8d62","#8da0cb"]}
+          },
+          "tooltip":[
+            {"field":"lga_name","type":"nominal","title":"LGA"},
+            {"field":"population","type":"quantitative","title":"Population"},
+            {"field":"insured","type":"quantitative","title":"Number insured"},
+            {"field":"pct_insured","type":"quantitative","title":"% insured","format":".1f"},
+            {"field":xFieldKey,"type":"quantitative","title":xLabelForKey(xFieldKey)}
+          ]
+        }
+      },
+      // --- Horizontal line annotation ---
+      {
+        "data": {"values":[{"y":50}]},  // y-value for the line
+        "mark": {"type":"rule","color":"red","strokeWidth":2},
+        "encoding": {
+          "y":{"field":"y","type":"quantitative"}
+        }
+      },
+      // --- Text label for the line ---
+      {
+        "data": {"values":[{"y":50,"label":"50% target"}]},
+        "mark": {"type":"text","color":"red","align":"left","dx":5,"dy":-5,"fontWeight":"bold"},
+        "encoding": {
+          "y":{"field":"y","type":"quantitative"},
+          "text":{"field":"label","type":"nominal"}
+        }
       }
-    };
-  }
+    ]
+  };
+}
+
 
   function renderScatter(){
     const xField = xSelect.value;
