@@ -1,62 +1,67 @@
 {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-    "title": "Persons with disability (%) by LGA (2018) — filterable",
-    "width": 800,
-    "height": 700,
-    "params": [
-      {
-        "name": "minPct",
-        "value": 0,
-        "bind": {
-          "input": "range",
-          "min": 0,
-          "max": 40,
-          "step": 0.1,
-          "name": "Minimum disability % to show: "
-        }
-      }
-    ],
+    "description": "Scatter plot of % private health insurance vs population by LGA",
+    "width": 900,
+    "height": 600,
+    "title": "Private Health Insurance (%) vs Population by LGA (2022)",
     "data": {
-      "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_hlth_disab_DbR_Nov24_-7869466443108774970%20%282%29.csv",
-      "format": {"type": "csv"}
+      "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-10-Homework/LGA_Health_Insurance_Clean.csv",
+      "format": {"type": "csv", "trim": true}
     },
     "transform": [
       {
-        "calculate": "datum[\"Persons with disability (%) (Data year: 2018)\"] == null ? null : +datum[\"Persons with disability (%) (Data year: 2018)\"]",
-        "as": "persons_with_disability_pct"
+        "lookup": "lga_code",
+        "from": {
+          "data": {
+            "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-10-Homework/LGA_Population_2022_Clean.csv",
+            "format": {"type": "csv", "trim": true}
+          },
+          "key": "lga_code",
+          "fields": ["population"]
+        }
       },
-      {"calculate": "datum[\"Local Government Areas 2021 name\"]", "as": "lga_name"},
-      {"filter": "datum.persons_with_disability_pct != null && datum.persons_with_disability_pct >= minPct"}
+      {
+        "calculate": "datum.insured == null ? 0 : +datum.insured",
+        "as": "insured"
+      },
+      {
+        "calculate": "datum.population == null ? null : +datum.population",
+        "as": "population"
+      },
+      {
+        "calculate": "datum.insured / datum.population * 100",
+        "as": "pct_insured"
+      }
     ],
-    "mark": "bar",
+    "mark": {"type": "circle", "tooltip": true},
     "encoding": {
-      "y": {
-        "field": "lga_name",
-        "type": "ordinal",
-        "sort": {"field": "persons_with_disability_pct", "order": "descending"},
-        "title": "LGA",
-        "axis": {"labelLimit": 250, "labelFontSize": 10}
-      },
       "x": {
-        "field": "persons_with_disability_pct",
+        "field": "population",
         "type": "quantitative",
-        "title": "Persons with disability (%) (2018)",
-        "axis": {"format": ".1f"}
+        "title": "Population (2022)",
+        "scale": {"type": "log"}
+      },
+      "y": {
+        "field": "pct_insured",
+        "type": "quantitative",
+        "title": "Percent with Private Health Insurance (%)"
+      },
+      "size": {
+        "field": "population",
+        "type": "quantitative",
+        "legend": {"title": "Population size"}
       },
       "color": {
-        "field": "persons_with_disability_pct",
+        "field": "pct_insured",
         "type": "quantitative",
         "scale": {"scheme": "blues"},
-        "legend": null
+        "legend": {"title": "% Insured"}
       },
       "tooltip": [
         {"field": "lga_name", "type": "nominal", "title": "LGA"},
-        {
-          "field": "persons_with_disability_pct",
-          "type": "quantitative",
-          "title": "Disability %",
-          "format": ".1f"
-        }
+        {"field": "population", "type": "quantitative", "title": "Population"},
+        {"field": "insured", "type": "quantitative", "title": "Number Insured"},
+        {"field": "pct_insured", "type": "quantitative", "title": "% Insured", "format": ".1f"}
       ]
     }
   }
