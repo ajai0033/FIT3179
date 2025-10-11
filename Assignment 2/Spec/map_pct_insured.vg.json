@@ -14,7 +14,7 @@
         "lookup": "properties.LGA_CODE21",
         "from": {
           "data": {
-            "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-10-Homework/LGA_Health_population.csv",
+            "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Assignment_2/LGA_Health_population.csv",
             "format": {"type": "csv", "trim": true}
           },
           "key": "Local Government Areas 2021 code",
