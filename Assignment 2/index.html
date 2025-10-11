@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Australian Health Insurance Visualisations</title>
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+  <style>
+    body { 
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; 
+      margin: 16px; 
+      background: #f7f7f8; 
+      color: #111;
+    }
+    h1 { text-align: center; }
+    .vis-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+    .chart-box {
+      background: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      flex: 1 1 480px;
+      min-width: 460px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Health Insurance and Wellbeing in Australia</h1>
+
+  <div class="vis-container">
+    <div class="chart-box">
+      <h3>Overview — Health Indicators</h3>
+      <div id="overviewVis"></div>
+    </div>
+
+    <div class="chart-box">
+      <h3>% Privately Insured by LGA</h3>
+      <div id="mapVis"></div>
+    </div>
+  </div>
+
+  <script>
+    vegaEmbed('#overviewVis', 'Spec/kpis_overview.vg.json', {actions:false});
+    vegaEmbed('#mapVis', 'Spec/map_pct_insured.vg.json', {actions:false});
+  </script>
+
+</body>
+</html>
