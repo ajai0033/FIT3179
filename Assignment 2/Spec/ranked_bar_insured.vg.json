@@ -1,0 +1,89 @@
+{
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "title": "Top/Bottom LGAs by % Insured",
+    "width": 650,
+    "height": {"step": 18},
+    "data": {
+      "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Assignment_2/LGA_Insurance_pop.csv"
+    },
+    "params": [
+      {
+        "name": "mode",
+        "value": "Top 20",
+        "bind": {
+          "input": "select",
+          "options": ["Top 20", "Bottom 20"],
+          "name": "Show: "
+        }
+      },
+      {
+        "name": "search",
+        "value": "",
+        "bind": {"input": "text", "placeholder": "Search LGA..."}
+      },
+      {
+        "name": "selectedLGA",
+        "select": {
+          "type": "point",
+          "fields": ["Local Government Areas 2021 name"],
+          "on": "click"
+        }
+      }
+    ],
+    "transform": [
+      {"calculate": "+datum['Insured Pct']", "as": "pct_insured"},
+      {
+        "window": [{"op": "rank", "as": "rank_desc"}],
+        "sort": [{"field": "pct_insured", "order": "descending"}]
+      },
+      {
+        "window": [{"op": "rank", "as": "rank_asc"}],
+        "sort": [{"field": "pct_insured", "order": "ascending"}]
+      },
+      {
+        "calculate": "params.mode == 'Top 20' ? datum.pct_insured : -datum.pct_insured",
+        "as": "sort_key"
+      },
+      {
+        "filter": "(!params.search || indexof(lower(datum['Local Government Areas 2021 name']), lower(params.search)) >= 0) && (params.mode == 'Top 20' ? datum.rank_desc <= 20 : datum.rank_asc <= 20)"
+      }
+    ],
+    "mark": {"type": "bar", "cursor": "pointer"},
+    "encoding": {
+      "y": {
+        "field": "Local Government Areas 2021 name",
+        "type": "nominal",
+        "title": null,
+        "sort": {"field": "sort_key", "order": "descending"},
+        "axis": {"labelLimit": 250}
+      },
+      "x": {
+        "field": "pct_insured",
+        "type": "quantitative",
+        "title": "% insured",
+        "axis": {"format": ".1f"}
+      },
+      "color": {
+        "condition": {
+          "param": "selectedLGA",
+          "empty": false,
+          "value": "#ff7f0e"
+        },
+        "value": "#8c8c8c"
+      },
+      "opacity": {
+        "condition": {"param": "selectedLGA", "empty": false, "value": 1},
+        "value": 0.7
+      },
+      "tooltip": [
+        {"field": "Local Government Areas 2021 name", "title": "LGA"},
+        {"field": "pct_insured", "title": "% insured", "format": ".1f"},
+        {"field": "rank_desc", "title": "Rank (High→Low)"},
+        {"field": "rank_asc", "title": "Rank (Low→High)"}
+      ]
+    },
+    "config": {
+      "axis": {"labelFontSize": 11, "titleFontSize": 12}
+    }
+  }
+  
