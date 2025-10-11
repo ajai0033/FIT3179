@@ -20,7 +20,7 @@
           "key": "Local Government Areas 2021 code",
           "fields": [
             "Population (2022)",
-            "Persons who reported having private health insurance (no.) (Data year: 2022)"
+            "Persons who reported having private health insurance (no) (Data year: 2022)"
           ]
         }
       },
@@ -29,7 +29,7 @@
         "as": "population"
       },
       {
-        "calculate": "datum['Persons who reported having private health insurance (no.) (Data year: 2022)'] == null || datum['Persons who reported having private health insurance (no.) (Data year: 2022)'] == '' ? 0 : +datum['Persons who reported having private health insurance (no.) (Data year: 2022)']",
+        "calculate": "datum['Persons who reported having private health insurance (no) (Data year: 2022)'] == null || datum['Persons who reported having private health insurance (no) (Data year: 2022)'] == '' ? 0 : +datum['Persons who reported having private health insurance (no) (Data year: 2022)']",
         "as": "insured"
       },
       {
