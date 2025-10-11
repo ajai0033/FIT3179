@@ -1,10 +1,9 @@
 {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-    "description": "Choropleth map: percent privately insured by LGA (binned) with legend brushing and pan/zoom.",
-    "title": "Percent privately insured by LGA (2022)",
-    "width": "container",
-    "height": 600,
-    "autosize": {"type": "fit", "contains": "padding"},
+    "title": "% Insured — by LGA",
+    "width": 900,
+    "height": 700,
+    "projection": {"type": "mercator"},
     "data": {
       "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_2021_AUST_GDA2020.json",
       "format": {"type": "topojson", "feature": "LGA_2021_AUST_GDA2020"}
@@ -14,70 +13,29 @@
         "lookup": "properties.LGA_CODE21",
         "from": {
           "data": {
-            "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Assignment_2/LGA_Health_population.csv",
-            "format": {"type": "csv", "trim": true}
+            "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_hlth_disab_DbR_Nov24_-7869466443108774970%20%282%29.csv"
           },
           "key": "Local Government Areas 2021 code",
-          "fields": [
-            "Population (2022)",
-            "Persons who reported having private health insurance (no) (Data year: 2022)"
-          ]
+          "fields": ["Insured Pct"]
         }
       },
       {
-        "calculate": "datum['Population (2022)'] == null || datum['Population (2022)'] == '' ? null : +datum['Population (2022)']",
-        "as": "population"
-      },
-      {
-        "calculate": "datum['Persons who reported having private health insurance (no) (Data year: 2022)'] == null || datum['Persons who reported having private health insurance (no) (Data year: 2022)'] == '' ? 0 : +datum['Persons who reported having private health insurance (no) (Data year: 2022)']",
-        "as": "insured"
-      },
-      {
-        "calculate": "datum.population == null || datum.population == 0 ? null : (datum.insured / datum.population) * 100",
+        "calculate": "datum['Insured Pct'] == null ? null : +datum['Insured Pct']",
         "as": "pct_insured"
-      },
-      {
-        "bin": {"maxbins": 5},
-        "field": "pct_insured",
-        "as": "pct_insured_binned"
       }
     ],
-    "selection": {
-      "zoom": {
-        "type": "interval",
-        "bind": "scales"
-      },
-      "binsel": {
-        "type": "multi",
-        "encodings": ["color"],
-        "on": "click",
-        "empty": "all"
-      }
-    },
-    "mark": {"type": "geoshape", "stroke": "#888", "strokeWidth": 0.3},
+    "mark": {"type": "geoshape", "stroke": "white", "strokeWidth": 0.5},
     "encoding": {
       "color": {
-        "field": "pct_insured_binned",
-        "type": "ordinal",
-        "title": "% insured (binned)",
-        "scale": {"scheme": "blues"},
-        "legend": {"orient": "right", "labelLimit": 140}
-      },
-      "opacity": {
-        "condition": {"selection": "binsel", "value": 1},
-        "value": 0.25
+        "field": "pct_insured",
+        "type": "quantitative",
+        "scale": {"type": "quantile"},
+        "title": "% insured"
       },
       "tooltip": [
         {"field": "properties.LGA_NAME21", "type": "nominal", "title": "LGA"},
-        {"field": "population", "type": "quantitative", "title": "Population (2022)", "format": ",d"},
-        {"field": "insured", "type": "quantitative", "title": "Number insured", "format": ",d"},
-        {"field": "pct_insured", "type": "quantitative", "title": "% insured (2022)", "format": ".1f"}
+        {"field": "pct_insured", "type": "quantitative", "title": "% insured", "format": ".1f"}
       ]
-    },
-    "config": {
-      "view": {"stroke": "transparent"},
-      "background": "#ffffff",
-      "legend": {"titleFontSize": 12, "labelFontSize": 11}
     }
   }
   
