@@ -1,0 +1,83 @@
+{
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "description": "Choropleth map: percent privately insured by LGA (binned) with legend brushing and pan/zoom.",
+    "title": "Percent privately insured by LGA (2022)",
+    "width": "container",
+    "height": 600,
+    "autosize": {"type": "fit", "contains": "padding"},
+    "data": {
+      "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_2021_AUST_GDA2020.json",
+      "format": {"type": "topojson", "feature": "LGA_2021_AUST_GDA2020"}
+    },
+    "transform": [
+      {
+        "lookup": "properties.LGA_CODE21",
+        "from": {
+          "data": {
+            "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-10-Homework/LGA_Health_population.csv",
+            "format": {"type": "csv", "trim": true}
+          },
+          "key": "Local Government Areas 2021 code",
+          "fields": [
+            "Population (2022)",
+            "Persons who reported having private health insurance (no.) (Data year: 2022)"
+          ]
+        }
+      },
+      {
+        "calculate": "datum['Population (2022)'] == null || datum['Population (2022)'] == '' ? null : +datum['Population (2022)']",
+        "as": "population"
+      },
+      {
+        "calculate": "datum['Persons who reported having private health insurance (no.) (Data year: 2022)'] == null || datum['Persons who reported having private health insurance (no.) (Data year: 2022)'] == '' ? 0 : +datum['Persons who reported having private health insurance (no.) (Data year: 2022)']",
+        "as": "insured"
+      },
+      {
+        "calculate": "datum.population == null || datum.population == 0 ? null : (datum.insured / datum.population) * 100",
+        "as": "pct_insured"
+      },
+      {
+        "bin": {"maxbins": 5},
+        "field": "pct_insured",
+        "as": "pct_insured_binned"
+      }
+    ],
+    "selection": {
+      "zoom": {
+        "type": "interval",
+        "bind": "scales"
+      },
+      "binsel": {
+        "type": "multi",
+        "encodings": ["color"],
+        "on": "click",
+        "empty": "all"
+      }
+    },
+    "mark": {"type": "geoshape", "stroke": "#888", "strokeWidth": 0.3},
+    "encoding": {
+      "color": {
+        "field": "pct_insured_binned",
+        "type": "ordinal",
+        "title": "% insured (binned)",
+        "scale": {"scheme": "blues"},
+        "legend": {"orient": "right", "labelLimit": 140}
+      },
+      "opacity": {
+        "condition": {"selection": "binsel", "value": 1},
+        "value": 0.25
+      },
+      "tooltip": [
+        {"field": "properties.LGA_NAME21", "type": "nominal", "title": "LGA"},
+        {"field": "population", "type": "quantitative", "title": "Population (2022)", "format": ",d"},
+        {"field": "insured", "type": "quantitative", "title": "Number insured", "format": ",d"},
+        {"field": "pct_insured", "type": "quantitative", "title": "% insured (2022)", "format": ".1f"}
+      ]
+    },
+    "config": {
+      "view": {"stroke": "transparent"},
+      "background": "#ffffff",
+      "legend": {"titleFontSize": 12, "labelFontSize": 11}
+    }
+  }
+  
