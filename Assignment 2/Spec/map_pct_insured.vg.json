@@ -1,41 +1,69 @@
 {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
     "title": "% Insured — by LGA",
-    "width": 900,
-    "height": 700,
-    "projection": {"type": "mercator"},
+    "width": "container",
+    "autosize": {"type":"fit","contains":"padding"},
+    "height": 400,
+    "projection": {
+        "type": "mercator"
+    },
     "data": {
       "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_2021_AUST_GDA2020.json",
       "format": {"type": "topojson", "feature": "LGA_2021_AUST_GDA2020"}
     },
+    "params": [
+        { "name": "selectedLGA", "value": null }
+      ],
     "transform": [
       {
         "lookup": "properties.LGA_CODE21",
         "from": {
           "data": {
-            "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Assignment_2/LGA_Insurance_pop.csv"
+            "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Assignment_2/LGA_Insurance_pop.csv",
+            "format": {"type": "csv"}
           },
           "key": "Local Government Areas 2021 code",
           "fields": ["Insured Pct"]
         }
       },
       {
-        "calculate": "datum['Insured Pct'] == null ? null : +datum['Insured Pct']",
+        "calculate": "isValid(datum['Insured Pct']) && datum['Insured Pct'] !== '' ? parseFloat(replace(datum['Insured Pct'], '%', '')) : null",
         "as": "pct_insured"
+      },
+      {
+        "calculate": "selectedLGA ? datum : null",
+        "as": "selectedFeature" 
       }
     ],
     "mark": {"type": "geoshape", "stroke": "white", "strokeWidth": 0.5},
     "encoding": {
       "color": {
+        "condition": {
+            "test": "datum.properties.LGA_NAME21 == selectedLGA",
+            "value": "orange"
+        },
         "field": "pct_insured",
         "type": "quantitative",
-        "scale": {"type": "quantile"},
-        "title": "% insured"
+        "scale": {"scheme": "greens"},
+        "title": "% privately insured"
+      },
+      "opacity": {
+        "condition": {
+          "test": "datum.properties.LGA_NAME21 == selectedLGA",
+          "value": 1
+        },
+        "value": 0.5
       },
       "tooltip": [
         {"field": "properties.LGA_NAME21", "type": "nominal", "title": "LGA"},
-        {"field": "pct_insured", "type": "quantitative", "title": "% insured", "format": ".1f"}
+        {"field": "pct_insured", "type": "quantitative", "title": "% insured", "format": ".2f"}
       ]
+    },
+      
+    
+    "config": {
+      "view": {"stroke": "transparent"},
+      "background": "#ffffff"
     }
   }
   

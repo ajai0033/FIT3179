@@ -1,55 +1,213 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <title>Australian Health Insurance Visualisations</title>
+  <meta charset="utf-8" />
+  <title>Health Insurance & Wellbeing — Layout (CSS-only)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+
   <style>
-    body { 
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; 
-      margin: 16px; 
-      background: #f7f7f8; 
+    /* ---------- Page reset & variables ---------- */
+    :root{
+      --page-pad: 18px;
+      --gap: 18px;
+      --card-bg: #fff;
+      --page-bg: #f7f7f8;
+      --max-width: 1200px;
+      --accent: #2b6cb0;
+      --card-radius: 10px;
+      --card-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+    * { box-sizing: border-box; }
+    html,body { height: 100%; margin:0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      background: var(--page-bg);
       color: #111;
-    }
-    h1 { text-align: center; }
-    .vis-container {
+      padding: var(--page-pad);
       display: flex;
-      flex-wrap: wrap;
       justify-content: center;
-      gap: 20px;
     }
-    .chart-box {
-      background: #fff;
+
+    /* ---------- Page container ---------- */
+    .page {
+      width: 100%;
+      max-width: var(--max-width);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--gap);
+    }
+
+    header {
+      text-align: center;
+      padding: 6px 12px;
+    }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    header p.sub { margin: 6px 0 0 0; color:#444; font-size: 1rem; }
+
+    /* ---------- Overview (full width) ---------- */
+    .overview {
+      background: var(--card-bg);
+      border-radius: var(--card-radius);
+      box-shadow: var(--card-shadow);
       padding: 12px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      flex: 1 1 480px;
-      min-width: 460px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 160px; /* reserve space so the KPI row won't overlap */
+      margin-bottom: 32px;
     }
+    .overview h2 { margin: 0; font-size:1rem; }
+    .overview .viz {
+      width: 100%;
+      height: 140px; /* fixed height for KPI row */
+      min-height: 120px;
+    }
+
+    /* ---------- Two-column area (map + ranked bar) ---------- */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--gap);
+      align-items: start;
+    }
+
+    /* Card styling shared */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--card-radius);
+      box-shadow: var(--card-shadow);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 480px; /* ensure enough room for Vega to render without overlay */
+    }
+    .card h2 { margin: 0; font-size:1rem; }
+
+    /* Viz containers — Vega should fill these */
+    .viz {
+      width: 100%;
+      height: 100%;
+      min-height: 380px;
+      /* Set an aspect ratio for nicer scaling on wide screens; map tends to be wider/taller */
+      aspect-ratio: 16 / 10;
+      background: transparent;
+    }
+    /* If you want the bar chart same height as map, keep aspect-ratio same */
+    .viz.bar { aspect-ratio: 16 / 10; }
+
+    /* Caption style */
+    .caption { font-size: 0.9rem; color:#555; margin-top: 16px; }
+
+    /* ---------- Responsive adjustments (no JS) ---------- */
+    @media (max-width: 1000px) {
+      .two-col { grid-template-columns: 1fr; }
+      .card { min-height: 420px; }
+      .overview .viz { height: 150px; }
+    }
+
+    /* ---------- Accessibility / focus states ---------- */
+    .card:focus-within { outline: 2px solid rgba(43,108,176,0.12); }
+
+    .chart-caption {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #555;
+    margin-top: 12px;   /* creates gap between chart and caption */
+    font-style: italic; /* optional — looks like a figure caption */
+  }
   </style>
 </head>
+
 <body>
+  <div class="page" role="main">
+    <header>
+      <h1>Health Insurance & Wellbeing in Australian LGAs</h1>
+      <p class="sub">Overview and spatial distribution of private health insurance coverage.</p>
+    </header>
 
-  <h1>Health Insurance and Wellbeing in Australia</h1>
+    <!-- Overview full-width -->
+    <section class="overview" aria-label="Overview KPIs">
+      <h2>Overview — Key indicators</h2>
+      <!-- Vega will render an overview KPI row here; ensure spec is responsive (width:container) -->
+      <div id="overviewVis" class="viz" role="region" aria-label="Key performance indicators"></div>
+      <p class="caption">Hover tiles for exact values. KPIs summarise national coverage and related indicators.</p>
+    </section>
 
-  <div class="vis-container">
-    <div class="chart-box">
-      <h3>Overview — Health Indicators</h3>
-      <div id="overviewVis"></div>
-    </div>
+    <!-- Two-column row -->
+    <section class="two-col" aria-label="Map and Ranked Bars">
+      <div class="card" aria-label="% Insured Map">
+        <h2>% Privately Insured — Choropleth</h2>
+        <div id="mapVis" class="viz" role="region" aria-label="Map of percent insured"></div>
+      </div>
 
-    <div class="chart-box">
-      <h3>% Privately Insured by LGA</h3>
-      <div id="mapVis"></div>
-    </div>
+      <div class="card" aria-label="Ranked LGAs by percent insured">
+        <h2>Ranked LGAs — % privately insured</h2>
+        <div id="rankVis" class="viz bar" role="region" aria-label="Ranked LGAs chart"></div>
+        <p class="caption">Top and bottom LGAs by percent insured. Click an LGA to highlight it on the map.</p>
+      </div>
+    </section>
   </div>
 
   <script>
-    vegaEmbed('#overviewVis', 'Spec/kpis_overview.vg.json', {actions:false});
-    vegaEmbed('#mapVis', 'Spec/map_pct_insured.vg.json', {actions:false});
-  </script>
+    // Embed your existing Vega-Lite JSON specs into the prepared containers.
+    // Ensure your JSON specs use "width": "container" and "autosize": {"type":"fit","contains":"padding"}
+    // to match the container sizes.
 
+    // Adjust these paths to where you store the JSON spec files:
+    const overviewSpecPath = 'Spec/kpis_overview.vg.json';
+    const mapSpecPath = 'Spec/map_pct_insured.vg.json';
+    const rankSpecPath = 'Spec/ranked_bar_insured.vg.json';
+
+    // Embed overview
+    vegaEmbed('#overviewVis', overviewSpecPath, {actions: false}).catch(err => {
+      console.error('Overview embed error:', err);
+      document.getElementById('overviewVis').textContent = 'Failed to load overview: ' + err.message;
+    });
+    let mapView, rankView;
+    // Embed map
+    vegaEmbed('#mapVis', mapSpecPath, {actions: false}).then(res => {
+        mapView = res.view;
+    }).catch(err => {console.error('Map embed error:', err)});
+
+    // Embed ranked bars
+    vegaEmbed('#rankVis', rankSpecPath, {actions: false}).then(res => {
+        rankView = res.view;
+
+        rankView.addSignalListener('selectedLGA', async (name, value) => {
+        if (!mapView || !value) return;
+
+        // Highlight the LGA
+        await mapView.signal('selectedLGA', value).runAsync();
+
+        // Zoom to LGA
+        const geoData = mapView.data('mapData');
+        const feature = geoData.find(d => d.properties.LGA_NAME21 === value);
+        if (feature) {
+            // Compute centroid using d3.geoCentroid
+            const centroid = d3.geoCentroid(feature);
+
+            // Get projection
+            const proj = mapView.projection('mercator');
+
+            // Compute new translate to center the centroid
+            const [x, y] = proj(centroid);
+            const width = mapView.width();
+            const height = mapView.height();
+
+            // Adjust scale for zoom level
+            const scale = 2000; // tweak higher to zoom in
+
+            proj.scale(scale)
+                .translate([width / 2 - x + width / 2, height / 2 - y + height / 2]);
+
+            await mapView.runAsync();
+        }
+    });
+    }).catch(err => console.error(err));
+  </script>
 </body>
 </html>

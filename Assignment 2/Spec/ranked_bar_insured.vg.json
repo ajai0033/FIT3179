@@ -1,8 +1,9 @@
 {
   "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
   "title": "Top/Bottom LGAs by % Insured (cleaned and ranked)",
-  "width": 650,
-  "height": 600,
+  "width": "container",
+  "autosize": {"type":"fit","contains":"padding"},
+  "height": 350,
   "data": {
     "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Assignment_2/LGA_Insurance_pop.csv",
     "format": {"type": "csv"}
@@ -18,17 +19,14 @@
       }
     },
     {
-      "name": "search",
-      "value": "",
-      "bind": {"input": "text", "placeholder": "Search LGA..."}
-    },
-    {
       "name": "selectedLGA",
       "select": {
         "type": "point",
         "fields": ["Local Government Areas 2021 name"],
-        "on": "click"
-      }
+        "on": "click", 
+        "empty": "none"
+      },
+      "value": null
     }
   ],
   "transform": [
@@ -53,9 +51,6 @@
       "transform": [
         {
           "filter": "(mode == 'Top 20' && datum.rank_desc <= 20) || (mode == 'Bottom 20' && datum.rank_asc <= 20)"
-        },
-        {
-          "filter": "!search || indexof(lower(datum['Local Government Areas 2021 name']), lower(search)) >= 0"
         }
       ],
       "mark": {"type": "bar", "cursor": "pointer"},
