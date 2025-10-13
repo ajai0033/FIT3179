@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+<script src="https://d3js.org/d3-geo.v2.min.js"></script>
 <head>
   <meta charset="utf-8" />
   <title>Health Insurance & Wellbeing — Layout (CSS-only)</title>
@@ -150,64 +151,86 @@
         <p class="caption">Top and bottom LGAs by percent insured. Click an LGA to highlight it on the map.</p>
       </div>
     </section>
+
+    <section class="card" aria-label="Scatter Plot Analysis">
+      <h2>Relationship: Health Needs vs. Insurance Coverage</h2>
+      <div id="scatterVis" class="viz" role="region" aria-label="Scatter plot of health needs vs insurance coverage"></div>
+      <p class="caption">
+        Explore the relationship between different health needs (x-axis) and private insurance coverage (y-axis).
+        Use the dropdowns to change the metric and filter by LGA population size.
+      </p>
+  </section>
+
   </div>
 
   <script>
-    // Embed your existing Vega-Lite JSON specs into the prepared containers.
-    // Ensure your JSON specs use "width": "container" and "autosize": {"type":"fit","contains":"padding"}
-    // to match the container sizes.
+  const overviewSpecPath = 'Spec/kpis_overview.vg.json';
+  const mapSpecPath = 'Spec/map_pct_insured.vg.json';
+  const rankSpecPath = 'Spec/ranked_bar_insured.vg.json';
+  const scatterSpecPath = 'Spec/pct_insured_vs_x.vg.json';
 
-    // Adjust these paths to where you store the JSON spec files:
-    const overviewSpecPath = 'Spec/kpis_overview.vg.json';
-    const mapSpecPath = 'Spec/map_pct_insured.vg.json';
-    const rankSpecPath = 'Spec/ranked_bar_insured.vg.json';
+  let mapView, rankView;
 
-    // Embed overview
-    vegaEmbed('#overviewVis', overviewSpecPath, {actions: false}).catch(err => {
-      console.error('Overview embed error:', err);
-      document.getElementById('overviewVis').textContent = 'Failed to load overview: ' + err.message;
-    });
-    let mapView, rankView;
-    // Embed map
-    vegaEmbed('#mapVis', mapSpecPath, {actions: false}).then(res => {
-        mapView = res.view;
-    }).catch(err => {console.error('Map embed error:', err)});
+  // embed overview (unchanged)
+  vegaEmbed('#overviewVis', overviewSpecPath, {actions:false})
+    .catch(err => console.error('Overview embed error:', err));
 
-    // Embed ranked bars
-    vegaEmbed('#rankVis', rankSpecPath, {actions: false}).then(res => {
-        rankView = res.view;
+  // embed map and stash the view
+  vegaEmbed('#mapVis', mapSpecPath, {actions:false})
+    .then(res => { mapView = res.view; })
+    .catch(err => console.error('Map embed error:', err));
 
-        rankView.addSignalListener('selectedLGA', async (name, value) => {
-        if (!mapView || !value) return;
+  // embed rank chart and link selection
+  vegaEmbed('#rankVis', rankSpecPath, {actions:false})
+    .then(res => {
+      rankView = res.view;
 
-        // Highlight the LGA
+      // listen for the selectedLGA signal from the rank chart
+      rankView.addSignalListener('selectedLGA', async (name, value) => {
+        if (!mapView) return;
+
+        // 1) set highlight
         await mapView.signal('selectedLGA', value).runAsync();
 
-        // Zoom to LGA
-        const geoData = mapView.data('mapData');
-        const feature = geoData.find(d => d.properties.LGA_NAME21 === value);
-        if (feature) {
-            // Compute centroid using d3.geoCentroid
-            const centroid = d3.geoCentroid(feature);
+        // 2) if there's a value, compute centroid and update projection signals
+        if (value) {
+          // map data is named "mapData" in the Vega-Lite spec (see step 1)
+          const geo = mapView.data('mapData') || mapView.data('data_0') || [];
+          // find the feature whose properties.LGA_NAME21 equals the clicked name
+          const feature = geo.find(d => d && d.properties && d.properties.LGA_NAME21 === value);
 
-            // Get projection
-            const proj = mapView.projection('mercator');
+          if (feature) {
+            // compute geo centroid (lon, lat)
+            const centroid = d3.geoCentroid(feature); // returns [lon, lat]
 
-            // Compute new translate to center the centroid
-            const [x, y] = proj(centroid);
-            const width = mapView.width();
-            const height = mapView.height();
+            // pick a scale. smaller LGAs need larger scales. a quick heuristic:
+            // use a modest zoom and allow user to adjust. You can also make this dynamic.
+            const zoomScale = 6000; // tweak this: higher => more zoom
 
-            // Adjust scale for zoom level
-            const scale = 2000; // tweak higher to zoom in
+            // update projection center and scale signals defined in the map spec
+            await mapView.signal('projCenter', centroid).runAsync();
+            await mapView.signal('projScale', zoomScale).runAsync();
 
-            proj.scale(scale)
-                .translate([width / 2 - x + width / 2, height / 2 - y + height / 2]);
-
+            // run the view so Vega-Lite re-renders
             await mapView.runAsync();
+          } else {
+            // If not found, reset to default center/scale (optional)
+            // await mapView.signal('projCenter', [134.0,-26.0]).runAsync();
+            // await mapView.signal('projScale', 1200).runAsync();
+            // await mapView.runAsync();
+            console.warn('Selected LGA not found in map data:', value);
+          }
+        } else {
+          // no selection — optional: reset zoom
+          // await mapView.signal('projCenter', [134.0,-26.0]).runAsync();
+          // await mapView.signal('projScale', 1200).runAsync();
+          // await mapView.runAsync();
         }
-    });
-    }).catch(err => console.error(err));
+      }); // end addSignalListener
+    }).catch(err => console.error('Rank embed error:', err));
+
+    vegaEmbed('#scatterVis', scatterSpecPath, {actions:false})
+    .catch(err => console.error('Scatter plot embed error:', err));
   </script>
 </body>
 </html>

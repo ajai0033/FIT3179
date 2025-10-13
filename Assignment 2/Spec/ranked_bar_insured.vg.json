@@ -22,7 +22,7 @@
       "name": "selectedLGA",
       "select": {
         "type": "point",
-        "fields": ["Local Government Areas 2021 name"],
+        "fields": ["LGA_CODE21_str"],
         "on": "click", 
         "empty": "none"
       },
@@ -33,6 +33,10 @@
     {
       "calculate": "datum['Insured Pct'] == null ? null : parseFloat(replace(replace(trim(datum['Insured Pct']), '%', ''), ',', ''))",
       "as": "pct_insured"
+    },
+    {
+      "calculate": "toString(datum['Local Government Areas 2021 code'])",
+      "as": "LGA_CODE21_str"
     },
     {
       "filter": "datum.pct_insured != null && !isNaN(datum.pct_insured)"

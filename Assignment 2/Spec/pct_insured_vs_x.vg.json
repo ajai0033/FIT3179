@@ -1,0 +1,156 @@
+{
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "description": "A scatter plot showing the relationship between various health needs and private health insurance coverage across Australian Local Government Areas (LGAs), with interactive controls.",
+    "width": "container",
+    "autosize": {"type":"fit","contains":"padding"},
+    "height": 350,
+    "data": {
+      "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-10-Homework/LGA_Health_population.csv",
+      "format": {"type": "csv"}
+    },
+    "transform": [
+      {
+        "calculate": "toNumber(datum['Persons who reported having private health insurance (no.) (Data year: 2022)']) || 0",
+        "as": "insured_count"
+      },
+      {
+        "calculate": "datum.insured_count / toNumber(datum['Population (2022)']) * 100",
+        "as": "pct_insured"
+      },
+      {
+        "calculate": "toNumber(datum['Population (2022)']) < 5000 ? 'Small (<5k)' : toNumber(datum['Population (2022)']) < 50000 ? 'Medium (5k–50k)' : 'Large (>50k)'",
+        "as": "size_cat"
+      },
+      {
+        "filter": "datum['Population (2022)'] > 0 && datum.pct_insured != null"
+      },
+      {
+        "fold": [
+          "Persons with disability (%) (Data year: 2018)",
+          "Persons who are carers (%) (Data year: 2018)",
+          "Persons with long-term health condition(s): Mental health condition (including depression or anxiety) (%) (Data year: 2021)",
+          "Persons with long-term health condition(s): Arthritis (%) (Data year: 2021)"
+        ],
+        "as": ["Need Category", "Need Percentage"]
+      },
+      {
+        "filter": "size_filter == 'All sizes' || datum.size_cat == size_filter"
+      },
+      {
+        "filter": "datum['Need Category'] == xAxisVariable"
+      },
+      {
+        "filter": "datum['Need Percentage'] != null"
+      }
+    ],
+    "params": [
+      {
+        "name": "xAxisVariable",
+        "value": "Persons with disability (%) (Data year: 2018)",
+        "bind": {
+          "input": "select",
+          "name": "X axis: ",
+          "options": [
+            "Persons with disability (%) (Data year: 2018)",
+            "Persons who are carers (%) (Data year: 2018)",
+            "Persons with long-term health condition(s): Mental health condition (including depression or anxiety) (%) (Data year: 2021)",
+            "Persons with long-term health condition(s): Arthritis (%) (Data year: 2021)"
+          ],
+          "labels": [
+            "Persons with disability (%) (2018)",
+            "Persons who are carers (%) (2018)",
+            "Mental health condition (%) (2021)",
+            "Arthritis (%) (2021)"
+          ]
+        }
+      },
+      {
+        "name": "size_filter",
+        "value": "All sizes",
+        "bind": {
+          "input": "select",
+          "name": "Show size: ",
+          "options": [
+            "All sizes",
+            "Small (<5k)",
+            "Medium (5k–50k)",
+            "Large (>50k)"
+          ]
+        }
+      }
+    ],
+    "layer": [
+      {
+        "mark": {"type": "point", "filled": true},
+        "encoding": {
+          "x": {
+            "field": "Need Percentage",
+            "type": "quantitative",
+            "title": {"expr": "xAxisVariable"}
+          },
+          "y": {
+            "field": "pct_insured",
+            "type": "quantitative",
+            "title": "Percent with Private Health Insurance (%)"
+          },
+          "size": {
+            "field": "Population (2022)",
+            "type": "quantitative",
+            "scale": {"range": [50, 2000], "domain": [1000, 1200000]},
+            "legend": {"title": "Population size"}
+          },
+          "color": {
+            "field": "size_cat",
+            "type": "nominal",
+            "legend": {"title": "Population category"},
+            "scale": {
+              "domain": ["Small (<5k)", "Medium (5k–50k)", "Large (>50k)"],
+              "range": ["#66c2a5", "#fc8d62", "#8da0cb"]
+            }
+          },
+          "tooltip": [
+            {"field": "Local Government Areas 2021 name", "type": "nominal", "title": "LGA"},
+            {"field": "Population (2022)", "type": "quantitative"},
+            {
+              "field": "insured_count",
+              "type": "quantitative",
+              "title": "Number insured"
+            },
+            {
+              "field": "pct_insured",
+              "type": "quantitative",
+              "title": "% insured",
+              "format": ".1f"
+            },
+            {
+              "field": "Need Percentage",
+              "type": "quantitative",
+              "title": {"expr": "xAxisVariable"}
+            }
+          ]
+        }
+      },
+      {
+        "data": {"values": [{"y_ref": 50}]},
+        "mark": {"type": "rule", "color": "red", "strokeWidth": 2},
+        "encoding": {
+          "y": {"field": "y_ref", "type": "quantitative"}
+        }
+      },
+      {
+        "data": {"values": [{"y_ref": 50, "label": "50% target"}]},
+        "mark": {
+          "type": "text",
+          "color": "red",
+          "align": "left",
+          "dx": 5,
+          "dy": -5,
+          "fontWeight": "bold"
+        },
+        "encoding": {
+          "y": {"field": "y_ref", "type": "quantitative"},
+          "text": {"field": "label", "type": "nominal"}
+        }
+      }
+    ]
+  }
