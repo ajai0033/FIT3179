@@ -137,7 +137,7 @@
       <div id="overviewVis" class="viz" role="region" aria-label="Key performance indicators"></div>
       <p class="caption">Hover tiles for exact values. KPIs summarise national coverage and related indicators.</p>
     </section>
-
+    
     <!-- Two-column row -->
     <section class="two-col" aria-label="Map and Ranked Bars">
       <div class="card" aria-label="% Insured Map">
@@ -152,16 +152,6 @@
       </div>
     </section>
 
-    <section class="card" aria-label="Scatter Plot Analysis">
-      <h2>Relationship: Health Needs vs. Insurance Coverage</h2>
-      <div id="scatterVis" class="viz" role="region" aria-label="Scatter plot of health needs vs insurance coverage"></div>
-      <p class="caption">
-        Explore the relationship between different health needs (x-axis) and private insurance coverage (y-axis).
-        Use the dropdowns to change the metric and filter by LGA population size.
-      </p>
-    </section>
-
-    <!-- NEW: Lower two-column area for two extra visualisations -->
     <section class="two-col">
       <div class="card">
         <h2>Private Health Insurance by Age and Sex</h2>
@@ -169,6 +159,17 @@
         <p class="caption">
           Mean % insured across age groups. Shows gender and generational differences in insurance uptake.
         </p>
+      </div>
+
+      <div class="card">
+        <div id="timeseriesVis" class="viz"></div>
+      </div>
+    </section>
+
+    <section class="two-col">
+      <div class="card">
+        <h2>Treatment by Type</h2>
+        <div id="treemapVis" class="viz"></div>
       </div>
 
       <div class="card">
@@ -180,6 +181,14 @@
       </div>
     </section>
 
+    <section class="card" aria-label="Scatter Plot Analysis">
+      <h2>Relationship: Health Needs vs. Insurance Coverage</h2>
+      <div id="scatterVis" class="viz" role="region" aria-label="Scatter plot of health needs vs insurance coverage"></div>
+      <p class="caption">
+        Explore the relationship between different health needs (x-axis) and private insurance coverage (y-axis).
+        Use the dropdowns to change the metric and filter by LGA population size.
+      </p>
+    </section>
   </div>
 
   <script>
@@ -190,6 +199,8 @@
   const scatterIncomeSpecPath = 'Spec/income_vs_insurance.vg.json';
   const pyramidSpecPath = 'Spec/age_vs_insured.vg.json';
   const heatmapSpecPath = 'Spec/heatmap_hospital_bed_density.vg.json';
+  const treemapVisSpecPath = 'Spec/treatment_type.vg.json';
+  const timeseriesVisSpecPath = 'Spec/overtime.vg.json'
 
   let mapView, rankView;
 
@@ -255,6 +266,8 @@
     .catch(err => console.error('Scatter plot embed error:', err));
     vegaEmbed('#pyramidVis', pyramidSpecPath, {actions:false});
     vegaEmbed('#heatmapVis', heatmapSpecPath, {actions:false});
+    vegaEmbed('#treemapVis', treemapVisSpecPath, {actions:false});
+    vegaEmbed('#timeseriesVisSpecPath', timeseriesVisSpecPath, {actions:false});
   </script>
 </body>
 </html>

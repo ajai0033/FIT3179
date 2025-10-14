@@ -1,0 +1,156 @@
+{
+    "$schema": "https://vega.github.io/schema/vega/v5.json",
+    "width": 600,
+    "autosize": { "type": "fit", "contains": "padding"},
+    "height": 400,
+    "padding": 5,
+    "title": {
+      "text": "Australians Without Private Health Insurance (2009-2023)",
+      "fontSize": 18,
+      "font": "sans-serif",
+      "anchor": "start",
+      "fontWeight": "bold",
+      "color": "#2d3748",
+      "offset": 10
+    },
+    "data": [
+      {
+        "name": "raw_data",
+        "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Assignment_2/time_series_data.csv",
+        "format": {"type": "csv"}
+      },
+      {
+        "name": "insurance_data",
+        "source": "raw_data",
+        "transform": [
+          {
+            "type": "filter",
+            "expr": "datum.Category == 'Does not have private health insurance'"
+          },
+          {
+            "type": "formula",
+            "as": "year_num",
+            "expr": "toNumber(datum.Year)"
+          },
+          {
+            "type": "formula",
+            "as": "value_num",
+            "expr": "toNumber(datum.Value)"
+          }
+        ]
+      }
+    ],
+    "scales": [
+      {
+        "name": "x",
+        "type": "linear",
+        "domain": [2009, 2023],
+        "range": "width",
+        "zero": false
+      },
+      {
+        "name": "y",
+        "type": "linear",
+        "domain": [38, 48],
+        "range": "height",
+        "nice": true
+      }
+    ],
+    "axes": [
+      {
+        "orient": "bottom",
+        "scale": "x",
+        "title": "Year",
+        "titleFontSize": 14,
+        "titlePadding": 10,
+        "labelFontSize": 11,
+        "format": "d",
+        "values": [2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023],
+        "tickCount": 15,
+        "grid": false
+      },
+      {
+        "orient": "left",
+        "scale": "y",
+        "title": "Percentage Without Private Health Insurance (%)",
+        "titleFontSize": 14,
+        "titlePadding": 10,
+        "labelFontSize": 11,
+        "grid": true,
+        "gridOpacity": 0.3
+      }
+    ],
+    "marks": [
+      {
+        "type": "area",
+        "from": {"data": "insurance_data"},
+        "encode": {
+          "enter": {
+            "x": {"scale": "x", "field": "year_num"},
+            "y": {"scale": "y", "field": "value_num"},
+            "y2": {"scale": "y", "value": 0},
+            "fill": {"value": "#667eea"},
+            "fillOpacity": {"value": 0.2}
+          }
+        }
+      },
+      {
+        "type": "line",
+        "from": {"data": "insurance_data"},
+        "encode": {
+          "enter": {
+            "x": {"scale": "x", "field": "year_num"},
+            "y": {"scale": "y", "field": "value_num"},
+            "stroke": {"value": "#667eea"},
+            "strokeWidth": {"value": 3}
+          },
+          "update": {
+            "strokeOpacity": {"value": 1}
+          },
+          "hover": {
+            "strokeOpacity": {"value": 0.7}
+          }
+        }
+      },
+      {
+        "type": "symbol",
+        "from": {"data": "insurance_data"},
+        "encode": {
+          "enter": {
+            "x": {"scale": "x", "field": "year_num"},
+            "y": {"scale": "y", "field": "value_num"},
+            "fill": {"value": "#667eea"},
+            "stroke": {"value": "white"},
+            "strokeWidth": {"value": 2},
+            "size": {"value": 80},
+            "tooltip": {
+              "signal": "{'Year': datum.Year, 'Percentage': datum.Value + '%'}"
+            }
+          },
+          "update": {
+            "fillOpacity": {"value": 1}
+          },
+          "hover": {
+            "size": {"value": 150},
+            "fillOpacity": {"value": 0.8}
+          }
+        }
+      },
+      {
+        "type": "text",
+        "from": {"data": "insurance_data"},
+        "encode": {
+          "enter": {
+            "x": {"scale": "x", "field": "year_num"},
+            "y": {"scale": "y", "field": "value_num"},
+            "dy": {"value": -12},
+            "text": {"signal": "datum.Value + '%'"},
+            "align": {"value": "center"},
+            "fontSize": {"value": 10},
+            "fill": {"value": "#4a5568"},
+            "fontWeight": {"value": "bold"}
+          }
+        }
+      }
+    ]
+  }
