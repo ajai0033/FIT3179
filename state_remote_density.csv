@@ -1,0 +1,41 @@
+﻿State,Remoteness,Density
+NSW,Major cities,2.41
+NSW,Inner regional,2.85
+NSW,Outer regional,4.29
+NSW,Remote,7.3
+NSW,Very remote,4.03
+VIC,Major cities,2.23
+VIC,Inner regional,2.56
+VIC,Outer regional,2.99
+VIC,Remote,2.13
+VIC,Very remote,0
+QLD,Major cities,2.41
+QLD,Inner regional,2.25
+QLD,Outer regional,3.19
+QLD,Remote,3.05
+QLD,Very remote,4.04
+WA,Major cities,2.34
+WA,Inner regional,2.08
+WA,Outer regional,2.84
+WA,Remote,3.09
+WA,Very remote,3
+SA,Major cities,2.19
+SA,Inner regional,2.71
+SA,Outer regional,3.46
+SA,Remote,5.02
+SA,Very remote,3.42
+TAS,Major cities,0
+TAS,Inner regional,3.96
+TAS,Outer regional,1.21
+TAS,Remote,1.39
+TAS,Very remote,3.84
+ACT,Major cities,2.7
+ACT,Inner regional,0
+ACT,Outer regional,0
+ACT,Remote,0
+ACT,Very remote,0
+NT,Major cities,0
+NT,Inner regional,0
+NT,Outer regional,3.87
+NT,Remote,7.62
+NT,Very remote,1.39
