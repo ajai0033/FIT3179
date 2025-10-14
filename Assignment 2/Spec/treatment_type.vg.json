@@ -1,66 +1,203 @@
 {
-    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-    "title": "Proportion of Total Fees by Type of Treatment",
+    "$schema": "https://vega.github.io/schema/vega/v5.json",
     "width": 800,
-    "height": 500,
-    "data": {
-      "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Assignment_2/treatment_data.csv",
-      "format": { "type": "csv", "trim": true }
+    "height": 600,
+    "padding": 5,
+    "title": {
+      "text": "Treatment Types Fee Distribution",
+      "fontSize": 20,
+      "font": "sans-serif",
+      "anchor": "start",
+      "fontWeight": "bold",
+      "color": "#2d3748"
     },
-    "layer": [
+    "data": [
       {
+        "name": "raw_data",
+        "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Assignment_2/treatment_data.csv",
+        "format": {"type": "csv"}
+      },
+      {
+        "name": "filtered_treatments",
+        "source": "raw_data",
         "transform": [
           {
-            "type": "treemap",
-            "field": "ProportionValue",
-            "sort": { "field": "ProportionValue", "order": "descending" },
-            "round": true,
-            "size": { "signal": "[width, height]" },
-            "as": ["x", "y", "x2", "y2"]
+            "type": "filter",
+            "expr": "datum['Fees Charged'] > 0"
+          },
+          {
+            "type": "formula",
+            "as": "id",
+            "expr": "datum.ID"
+          },
+          {
+            "type": "formula",
+            "as": "parent",
+            "expr": "'0'"
+          },
+          {
+            "type": "formula",
+            "as": "value",
+            "expr": "toNumber(datum['Fees Charged'])"
+          }
+        ]
+      },
+      {
+        "name": "tree_data",
+        "values": [
+          {
+            "id": "0",
+            "parent": "",
+            "Type of Treatment": "All Treatments",
+            "value": 0
           }
         ],
-        "mark": { "type": "rect", "stroke": "#fff", "strokeWidth": 1 },
-        "encoding": {
-          "x": { "field": "x", "type": "quantitative", "axis": null },
-          "y": { "field": "y", "type": "quantitative", "axis": null },
-          "x2": { "field": "x2", "type": "quantitative" },
-          "y2": { "field": "y2", "type": "quantitative" },
-          "color": { "field": "Type of Treatment", "type": "nominal", "legend": null },
-          "tooltip": [
-            { "field": "Type of Treatment", "type": "nominal", "title": "Treatment" },
-            { "field": "Fees Charged", "type": "quantitative", "format": ",.2f" },
-            { "field": "ProportionValue", "type": "quantitative", "title": "Proportion (%)", "format": ".2f" }
-          ]
+        "transform": [
+          {
+            "type": "aggregate",
+            "groupby": ["id", "parent", "Type of Treatment"],
+            "fields": ["value"],
+            "ops": ["sum"],
+            "as": ["value"]
+          }
+        ]
+      },
+      {
+        "name": "combined",
+        "source": ["tree_data", "filtered_treatments"]
+      },
+      {
+        "name": "tree",
+        "source": "combined",
+        "transform": [
+          {
+            "type": "stratify",
+            "key": "id",
+            "parentKey": "parent"
+          },
+          {
+            "type": "treemap",
+            "field": "value",
+            "size": [{"signal": "width"}, {"signal": "height"}],
+            "method": "squarify",
+            "ratio": 1.5,
+            "round": true,
+            "padding": 1
+          }
+        ]
+      },
+      {
+        "name": "leaves",
+        "source": "tree",
+        "transform": [
+          {"type": "filter", "expr": "!datum.children"}
+        ]
+      }
+    ],
+    "scales": [
+      {
+        "name": "color",
+        "type": "ordinal",
+        "domain": {"data": "leaves", "field": "Type of Treatment"},
+        "range": [
+          "#667eea",
+          "#764ba2",
+          "#f093fb",
+          "#4facfe",
+          "#43e97b",
+          "#fa709a",
+          "#fee140",
+          "#30cfd0",
+          "#a8edea",
+          "#fed6e3",
+          "#ff6b6b",
+          "#4ecdc4",
+          "#45b7d1",
+          "#f7b731",
+          "#5f27cd",
+          "#00d2d3",
+          "#ff9ff3",
+          "#feca57",
+          "#48dbfb",
+          "#ff6348"
+        ]
+      }
+    ],
+    "marks": [
+      {
+        "type": "rect",
+        "from": {"data": "leaves"},
+        "encode": {
+          "enter": {
+            "fill": {"scale": "color", "field": "Type of Treatment"},
+            "tooltip": {
+              "signal": "{'Treatment': datum['Type of Treatment'], 'Fees Charged': '$' + format(datum.value, ',.2f'), 'Proportion': format(datum.Proportion, '.2f') + '%'}"
+            }
+          },
+          "update": {
+            "x": {"field": "x0"},
+            "x2": {"field": "x1"},
+            "y": {"field": "y0"},
+            "y2": {"field": "y1"},
+            "stroke": {"value": "white"},
+            "strokeWidth": {"value": 2},
+            "opacity": {"value": 0.9}
+          },
+          "hover": {
+            "opacity": {"value": 1},
+            "stroke": {"value": "#333"},
+            "strokeWidth": {"value": 3}
+          }
         }
       },
       {
-        "transform": [
-          {
-            "type": "treemap",
-            "field": "ProportionValue",
-            "sort": { "field": "ProportionValue", "order": "descending" },
-            "round": true,
-            "size": { "signal": "[width, height]" },
-            "as": ["x", "y", "x2", "y2"]
-          }
-        ],
-        "mark": { "type": "text", "align": "center", "baseline": "middle", "fontSize": 11, "dx": 0, "dy": 0 },
-        "encoding": {
-          "x": { "field": "x", "type": "quantitative", "axis": null },
-          "y": { "field": "y", "type": "quantitative", "axis": null },
-          "x2": { "field": "x2", "type": "quantitative" },
-          "y2": { "field": "y2", "type": "quantitative" },
-          "text": { "field": "Type of Treatment", "type": "nominal" },
-          "opacity": {
-            "condition": {
-              "test": "datum.x2 - datum.x > 60 && datum.y2 - datum.y > 24",
-              "value": 1
-            },
-            "value": 0
+        "type": "text",
+        "from": {"data": "leaves"},
+        "interactive": false,
+        "encode": {
+          "enter": {
+            "font": {"value": "sans-serif"},
+            "align": {"value": "center"},
+            "baseline": {"value": "middle"},
+            "fill": {"value": "white"},
+            "fontWeight": {"value": "bold"},
+            "text": {"field": "Type of Treatment"}
           },
-          "color": { "value": "black" }
+          "update": {
+            "x": {"signal": "(datum.x0 + datum.x1) / 2"},
+            "y": {"signal": "(datum.y0 + datum.y1) / 2"},
+            "fontSize": {
+              "signal": "max(9, min(14, (datum.x1 - datum.x0) / 15))"
+            },
+            "opacity": {
+              "signal": "(datum.x1 - datum.x0) > 50 && (datum.y1 - datum.y0) > 30 ? 1 : 0"
+            }
+          }
+        }
+      },
+      {
+        "type": "text",
+        "from": {"data": "leaves"},
+        "interactive": false,
+        "encode": {
+          "enter": {
+            "font": {"value": "sans-serif"},
+            "align": {"value": "center"},
+            "baseline": {"value": "middle"},
+            "fill": {"value": "white"},
+            "text": {"signal": "datum.value >= 1000000 ? '$' + format(datum.value / 1000000, '.1f') + 'M' : '$' + format(datum.value / 1000, '.0f') + 'K'"}
+          },
+          "update": {
+            "x": {"signal": "(datum.x0 + datum.x1) / 2"},
+            "y": {"signal": "(datum.y0 + datum.y1) / 2 + 14"},
+            "fontSize": {
+              "signal": "max(8, min(12, (datum.x1 - datum.x0) / 20))"
+            },
+            "opacity": {
+              "signal": "(datum.x1 - datum.x0) > 60 && (datum.y1 - datum.y0) > 45 ? 0.9 : 0"
+            }
+          }
         }
       }
     ]
   }
-  
