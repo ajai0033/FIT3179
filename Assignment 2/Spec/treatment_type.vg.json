@@ -1,0 +1,66 @@
+{
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "title": "Proportion of Total Fees by Type of Treatment",
+    "width": 800,
+    "height": 500,
+    "data": {
+      "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Assignment_2/treatment_data.csv",
+      "format": { "type": "csv", "trim": true }
+    },
+    "layer": [
+      {
+        "transform": [
+          {
+            "type": "treemap",
+            "field": "ProportionValue",
+            "sort": { "field": "ProportionValue", "order": "descending" },
+            "round": true,
+            "size": { "signal": "[width, height]" },
+            "as": ["x", "y", "x2", "y2"]
+          }
+        ],
+        "mark": { "type": "rect", "stroke": "#fff", "strokeWidth": 1 },
+        "encoding": {
+          "x": { "field": "x", "type": "quantitative", "axis": null },
+          "y": { "field": "y", "type": "quantitative", "axis": null },
+          "x2": { "field": "x2", "type": "quantitative" },
+          "y2": { "field": "y2", "type": "quantitative" },
+          "color": { "field": "Type of Treatment", "type": "nominal", "legend": null },
+          "tooltip": [
+            { "field": "Type of Treatment", "type": "nominal", "title": "Treatment" },
+            { "field": "Fees Charged", "type": "quantitative", "format": ",.2f" },
+            { "field": "ProportionValue", "type": "quantitative", "title": "Proportion (%)", "format": ".2f" }
+          ]
+        }
+      },
+      {
+        "transform": [
+          {
+            "type": "treemap",
+            "field": "ProportionValue",
+            "sort": { "field": "ProportionValue", "order": "descending" },
+            "round": true,
+            "size": { "signal": "[width, height]" },
+            "as": ["x", "y", "x2", "y2"]
+          }
+        ],
+        "mark": { "type": "text", "align": "center", "baseline": "middle", "fontSize": 11, "dx": 0, "dy": 0 },
+        "encoding": {
+          "x": { "field": "x", "type": "quantitative", "axis": null },
+          "y": { "field": "y", "type": "quantitative", "axis": null },
+          "x2": { "field": "x2", "type": "quantitative" },
+          "y2": { "field": "y2", "type": "quantitative" },
+          "text": { "field": "Type of Treatment", "type": "nominal" },
+          "opacity": {
+            "condition": {
+              "test": "datum.x2 - datum.x > 60 && datum.y2 - datum.y > 24",
+              "value": 1
+            },
+            "value": 0
+          },
+          "color": { "value": "black" }
+        }
+      }
+    ]
+  }
+  
