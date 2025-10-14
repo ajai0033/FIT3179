@@ -114,12 +114,12 @@
     .card:focus-within { outline: 2px solid rgba(43,108,176,0.12); }
 
     .chart-caption {
-    text-align: center;
-    font-size: 0.9rem;
-    color: #555;
-    margin-top: 12px;   /* creates gap between chart and caption */
-    font-style: italic; /* optional — looks like a figure caption */
-  }
+      text-align: center;
+      font-size: 0.9rem;
+      color: #555;
+      margin-top: 12px;   /* creates gap between chart and caption */
+      font-style: italic; /* optional — looks like a figure caption */
+    }
   </style>
 </head>
 
@@ -159,7 +159,26 @@
         Explore the relationship between different health needs (x-axis) and private insurance coverage (y-axis).
         Use the dropdowns to change the metric and filter by LGA population size.
       </p>
-  </section>
+    </section>
+
+    <!-- NEW: Lower two-column area for two extra visualisations -->
+    <section class="two-col">
+      <div class="card">
+        <h2>Private Health Insurance by Age and Sex</h2>
+        <div id="pyramidVis" class="viz"></div>
+        <p class="caption">
+          Mean % insured across age groups. Shows gender and generational differences in insurance uptake.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Heatmap of Hospital Bed Availability</h2>
+        <div id="heatmapVis" class="viz"></div>
+        <p class="caption">
+          Heatmap of Hospital beds per 1000 people. 
+        </p>
+      </div>
+    </section>
 
   </div>
 
@@ -168,6 +187,9 @@
   const mapSpecPath = 'Spec/map_pct_insured.vg.json';
   const rankSpecPath = 'Spec/ranked_bar_insured.vg.json';
   const scatterSpecPath = 'Spec/pct_insured_vs_x.vg.json';
+  const scatterIncomeSpecPath = 'Spec/income_vs_insurance.vg.json';
+  const pyramidSpecPath = 'Spec/age_vs_insured.vg.json';
+  const heatmapSpecPath = 'Spec/heatmap_hospital_bed_density.vg.json';
 
   let mapView, rankView;
 
@@ -229,8 +251,10 @@
       }); // end addSignalListener
     }).catch(err => console.error('Rank embed error:', err));
 
-    vegaEmbed('#scatterVis', scatterSpecPath, {actions:false})
+    vegaEmbed('#scatterVis', scatterIncomeSpecPath, {actions:false})
     .catch(err => console.error('Scatter plot embed error:', err));
+    vegaEmbed('#pyramidVis', pyramidSpecPath, {actions:false});
+    vegaEmbed('#heatmapVis', heatmapSpecPath, {actions:false});
   </script>
 </body>
 </html>

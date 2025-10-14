@@ -2,8 +2,9 @@
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
     "description": "Mirrored bar chart showing mean % insured by Age Group and Sex. 'All States' shows mean across states.",
     "title": "Private Health Insurance (%) by Age Group — Males vs Females (means)",
-    "width": 800,
-    "height": 520,
+    "width": 700,
+    "autosize": { "type": "fit", "contains": "padding" },
+    "height": 420,
   
     "data": {
       "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Assignment_2/Age_insured_by_state.csv",
@@ -66,6 +67,7 @@
             "field": "Age Group",
             "type": "ordinal",
             "sort": "descending",
+            
             "axis": {
               "title": "Age Group",
               "labelAngle": 0,

@@ -3,8 +3,8 @@
     "description": "Scatter: % privately insured (from a dedicated CSV) vs Median household income (yearly) by LGA. Bubble size = population.",
     "title": "% privately insured vs Median household income (yearly) — by LGA",
     "autosize": { "type": "fit", "contains": "padding" },
-    "width": "600",
-    "height": 520,
+    "width": "container",
+    "height": 350,
   
     "data": {
       "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Assignment_2/LGA_Insurance_pop.csv",
