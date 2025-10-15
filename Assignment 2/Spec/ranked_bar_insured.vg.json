@@ -20,13 +20,16 @@
     },
     {
       "name": "selectedLGA",
+      "value": null
+    },
+    {
+      "name": "lgaClick",
       "select": {
         "type": "point",
-        "fields": ["LGA_CODE21_str"],
-        "on": "click", 
-        "empty": "none"
-      },
-      "value": null
+        "fields": ["Local Government Areas 2021 name"],
+        "on": "click",
+        "clear": "dblclick"
+      }
     }
   ],
   "transform": [
@@ -48,6 +51,10 @@
     {
       "window": [{"op": "rank", "as": "rank_asc"}],
       "sort": [{"field": "pct_insured", "order": "ascending"}]
+    },
+    {
+      "calculate": "lgaClick['Local Government Areas 2021 name'] ? lgaClick['Local Government Areas 2021 name'][0] : null",
+      "as": "clicked_lga"
     }
   ],
   "layer": [
@@ -73,11 +80,17 @@
           "axis": {"format": ".1f"}
         },
         "color": {
-          "condition": {"param": "selectedLGA", "empty": false, "value": "#ff7f0e"},
+          "condition": {
+            "param": "lgaClick",
+            "value": "#ff7f0e"
+          },
           "value": "#8c8c8c"
         },
         "opacity": {
-          "condition": {"param": "selectedLGA", "empty": false, "value": 1},
+          "condition": {
+            "param": "lgaClick",
+            "value": 1
+          },
           "value": 0.7
         },
         "tooltip": [
@@ -89,5 +102,6 @@
       }
     }
   ],
-  "config": {"axis": {"labelFontSize": 11, "titleFontSize": 12}}
+  "config": {"axis": {"labelFontSize": 11, "titleFontSize": 12},
+  "background": "#E6F3FF"}
 }

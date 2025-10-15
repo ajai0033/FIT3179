@@ -1,0 +1,231 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Week 10 Homework</title>
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; padding:18px; background:#f7f7f8; color:#111 }
+    h2 { text-align:center; }
+    .flex-container {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .vis-container {
+      background: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      flex: 1 1 480px;
+      min-width: 480px;
+    }
+    .controls { display:flex; gap:12px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+    select, button { padding:6px; border-radius:6px; border:1px solid #ddd; }
+  </style>
+</head>
+<body>
+
+<h2>Private Health Insurance vs Needs & Map</h2>
+
+<div class="flex-container">
+  <div class="vis-container">
+    <div class="controls">
+      <label>
+        X axis:
+        <select id="xField">
+          <option value="disability_pct">Persons with disability (%) (2018)</option>
+          <option value="carers_pct">Persons who are carers (%) (2018)</option>
+          <option value="mental_pct">Mental health condition (%) (2021)</option>
+          <option value="arthritis_pct">Arthritis (%) (2021)</option>
+        </select>
+      </label>
+
+      <label>
+        Show size:
+        <select id="sizeFilter">
+          <option value="all">All sizes</option>
+          <option value="small">Small (&lt;5k)</option>
+          <option value="medium">Medium (5k–50k)</option>
+          <option value="large">Large (&gt;50k)</option>
+        </select>
+      </label>
+
+      <button id="resetBtn">Reset filters</button>
+    </div>
+    <div id="scatterVis"></div>
+  </div>
+
+  <div class="vis-container">
+    <div id="mapVis"></div>
+  </div>
+</div>
+
+<script>
+(async function(){
+  const scatterUrl = "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-10-Homework/LGA_Health_population.csv";
+  const text = await fetch(scatterUrl).then(r => r.text());
+  const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+
+  const cleanNum = v => { if (v==null) return null; const s=String(v).trim(); if(s==='') return null; const c=s.replace(/[^0-9.]/g,''); return c===''?null:Number(c); };
+
+  const rowsRaw = parsed.data.map(r => {
+    const pop = cleanNum(r['Population (2022)']);
+    const insured = cleanNum(r['Persons who reported having private health insurance (no.) (Data year: 2022)']) ?? 0;
+    const pct_insured = (pop != null && pop>0) ? (insured/pop)*100 : null;
+    return {
+      lga_name: r['Local Government Areas 2021 name'],
+      lga_code: r['Local Government Areas 2021 code'],
+      population: pop,
+      insured: insured,
+      pct_insured: pct_insured,
+      disability_pct: cleanNum(r['Persons with disability (%) (Data year: 2018)']),
+      carers_pct: cleanNum(r['Persons who are carers (%) (Data year: 2018)']),
+      mental_pct: cleanNum(r['Persons with long-term health condition(s): Mental health condition (including depression or anxiety) (%) (Data year: 2021)']),
+      arthritis_pct: cleanNum(r['Persons with long-term health condition(s): Arthritis (%) (Data year: 2021)'])
+    };
+  });
+
+  const rows = rowsRaw.filter(d=>d.population!=null && d.population > 0).map(d=>{
+    let size_cat; if(d.population<5000) size_cat="Small (<5k)"; else if(d.population<50000) size_cat="Medium (5k–50k)"; else size_cat="Large (>50k)";
+    return {...d,size_cat};
+  });
+
+  const xSelect = document.getElementById('xField');
+  const filterEl = document.getElementById('sizeFilter');
+  const resetBtn = document.getElementById('resetBtn');
+
+  function xLabelForKey(k){
+    return {disability_pct:"Persons with disability (%) (2018)", carers_pct:"Persons who are carers (%) (2018)", mental_pct:"Mental health condition (%) (2021)", arthritis_pct:"Arthritis (%) (2021)"}[k] ?? k;
+  }
+
+  function buildScatterSpec(dataValues, xFieldKey){
+  return {
+    "$schema":"https://vega.github.io/schema/vega-lite/v5.json",
+    "width":500,
+    "height":500,
+    "layer":[
+      {
+        "data":{"values":dataValues},
+        "mark":{"type":"point","filled":true,"tooltip":true},
+        "encoding":{
+          "x":{"field":xFieldKey,"type":"quantitative","title":xLabelForKey(xFieldKey)},
+          "y":{"field":"pct_insured","type":"quantitative","title":"Percent with Private Health Insurance (%)"},
+          "size":{
+            "field":"population",
+            "type":"quantitative",
+            "scale":{
+              "range":[50,2000],
+              "domain": [1000,1200000]
+            },
+            "legend":{"title":"Population size"}
+          },
+          "color":{
+            "field":"size_cat",
+            "type":"nominal",
+            "legend":{"title":"Population category"},
+            "scale":{"domain":["Small (<5k)","Medium (5k–50k)","Large (>50k)"],"range":["#66c2a5","#fc8d62","#8da0cb"]}
+          },
+          "tooltip":[
+            {"field":"lga_name","type":"nominal","title":"LGA"},
+            {"field":"population","type":"quantitative","title":"Population"},
+            {"field":"insured","type":"quantitative","title":"Number insured"},
+            {"field":"pct_insured","type":"quantitative","title":"% insured","format":".1f"},
+            {"field":xFieldKey,"type":"quantitative","title":xLabelForKey(xFieldKey)}
+          ]
+        }
+      },
+      // --- Horizontal line annotation ---
+      {
+        "data": {"values":[{"y":50}]},  // y-value for the line
+        "mark": {"type":"rule","color":"red","strokeWidth":2},
+        "encoding": {
+          "y":{"field":"y","type":"quantitative"}
+        }
+      },
+      // --- Text label for the line ---
+      {
+        "data": {"values":[{"y":50,"label":"50% target"}]},
+        "mark": {"type":"text","color":"red","align":"left","dx":5,"dy":-5,"fontWeight":"bold"},
+        "encoding": {
+          "y":{"field":"y","type":"quantitative"},
+          "text":{"field":"label","type":"nominal"}
+        }
+      }
+    ]
+  };
+}
+
+
+  function renderScatter(){
+    const xField = xSelect.value;
+    const sizeFilter = filterEl.value;
+    let filtered;
+    if(sizeFilter==='all') filtered = rows;
+    else if(sizeFilter==='small') filtered = rows.filter(d=>d.size_cat==="Small (<5k)");
+    else if(sizeFilter==='medium') filtered = rows.filter(d=>d.size_cat==="Medium (5k–50k)");
+    else if(sizeFilter==='large') filtered = rows.filter(d=>d.size_cat==="Large (>50k)");
+    filtered = filtered.filter(d=>d[xField]!=null);
+    const spec = buildScatterSpec(filtered, xField);
+    vegaEmbed('#scatterVis', spec, {actions:false});
+  }
+
+  xSelect.addEventListener('change', renderScatter);
+  filterEl.addEventListener('change', renderScatter);
+  resetBtn.addEventListener('click',()=>{ xSelect.value='disability_pct'; filterEl.value='all'; renderScatter(); });
+  renderScatter();
+
+  // --- Map Spec ---
+  const mapSpec = {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "title": "Persons with disability (%) — by LGA (2018)",
+    "width":500,
+    "height": 500,
+    "projection": {"type": "mercator"},
+    "data": {
+      "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_2021_AUST_GDA2020.json",
+      "format": {"type": "topojson", "feature": "LGA_2021_AUST_GDA2020"}
+    },
+    "transform": [
+      {
+        "lookup": "properties.LGA_CODE21",
+        "from": {
+          "data": {
+            "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-9-Homework/LGA_hlth_disab_DbR_Nov24_-7869466443108774970%20(2).csv",
+            "format":{"type":"csv"}
+          },
+          "key": "Local Government Areas 2021 code",
+          "fields": ["Persons with disability (%) (Data year: 2018)"]
+        }
+      },
+      {
+        "calculate": "datum['Persons with disability (%) (Data year: 2018)'] == null ? null : +datum['Persons with disability (%) (Data year: 2018)']",
+        "as": "persons_with_disability_pct"
+      }
+    ],
+    "mark": {"type": "geoshape"},
+    "encoding": {
+      "color": {
+        "field": "persons_with_disability_pct",
+        "type": "quantitative",
+        "scale": {"type": "linear","domain": [0,37.2]},
+        "legend": {"title": "Percent with disability"}
+      },
+      "tooltip": [
+        {"field": "properties.LGA_NAME21", "type": "nominal", "title": "LGA"},
+        {"field": "persons_with_disability_pct", "type": "quantitative", "title": "Pct (2018)"}
+      ]
+    }
+  };
+
+  vegaEmbed('#mapVis', mapSpec, {actions:false});
+})();
+</script>
+
+</body>
+</html>

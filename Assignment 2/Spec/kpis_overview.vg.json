@@ -4,45 +4,7 @@
     "autosize": {"type": "fit", "contains": "padding"},
     "hconcat": [
       {
-        "width": 180,
-        "height": 110,
-        "data": {
-          "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-10-Homework/LGA_Health_population.csv",
-          "format": {"type": "csv", "trim": true}
-        },
-        "transform": [
-          {
-            "calculate": "datum['Population (2022)'] == null || datum['Population (2022)'] == '' ? null : +datum['Population (2022)']",
-            "as": "population"
-          },
-          {
-            "calculate": "datum['Persons who reported having private health insurance (no.) (Data year: 2022)'] == null || datum['Persons who reported having private health insurance (no.) (Data year: 2022)'] == '' ? 0 : +datum['Persons who reported having private health insurance (no.) (Data year: 2022)']",
-            "as": "insured"
-          },
-          {"aggregate": [{"op": "sum", "field": "insured", "as": "sum_insured"}, {"op": "sum", "field": "population", "as": "sum_pop"}]},
-          {"calculate": "datum.sum_pop == 0 ? null : (datum.sum_insured / datum.sum_pop) * 100", "as": "national_pct_insured"}
-        ],
-        "layer": [
-          {
-            "mark": {"type": "text", "fontSize": 28, "fontWeight": "bold", "dy": -6},
-            "encoding": {
-              "text": {"field": "national_pct_insured", "type": "quantitative", "format": ".1f"},
-              "tooltip": [
-                {"field": "national_pct_insured", "type": "quantitative", "title": "% insured (national)", "format": ".1f"},
-                {"field": "sum_insured", "type": "quantitative", "title": "Total insured"},
-                {"field": "sum_pop", "type": "quantitative", "title": "Total population"}
-              ]
-            }
-          },
-          {
-            "mark": {"type": "text", "fontSize": 11, "dy": 18, "color": "#555"},
-            "encoding": {"text": {"value": "National % insured (2022)"}}
-          }
-        ]
-      },
-  
-      {
-        "width": 180,
+        "width": 300,
         "height": 110,
         "data": {
           "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-10-Homework/LGA_Health_population.csv",
@@ -57,7 +19,7 @@
         ],
         "layer": [
           {
-            "mark": {"type": "text", "fontSize": 28, "fontWeight": "bold", "dy": -6},
+            "mark": {"type": "text", "fontSize": 36, "fontWeight": "bold", "dy": -6},
             "encoding": {
               "text": {"field": "mean_disability_pct", "type": "quantitative", "format": ".1f"},
               "tooltip": [
@@ -66,14 +28,14 @@
             }
           },
           {
-            "mark": {"type": "text", "fontSize": 11, "dy": 18, "color": "#555"},
+            "mark": {"type": "text", "fontSize": 14, "dy": 18, "color": "#555"},
             "encoding": {"text": {"value": "Mean disability % (2018)"}}
           }
         ]
       },
   
       {
-        "width": 180,
+        "width": 300,
         "height": 110,
         "data": {
           "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-10-Homework/LGA_Health_population.csv",
@@ -88,7 +50,7 @@
         ],
         "layer": [
           {
-            "mark": {"type": "text", "fontSize": 28, "fontWeight": "bold", "dy": -6},
+            "mark": {"type": "text", "fontSize": 36, "fontWeight": "bold", "dy": -6},
             "encoding": {
               "text": {"field": "mean_carers_pct", "type": "quantitative", "format": ".1f"},
               "tooltip": [
@@ -97,45 +59,14 @@
             }
           },
           {
-            "mark": {"type": "text", "fontSize": 11, "dy": 18, "color": "#555"},
+            "mark": {"type": "text", "fontSize": 14, "dy": 18, "color": "#555"},
             "encoding": {"text": {"value": "Mean carers % (2018)"}}
           }
         ]
       },
   
       {
-        "width": 180,
-        "height": 110,
-        "data": {
-          "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-10-Homework/LGA_Health_population.csv",
-          "format": {"type": "csv", "trim": true}
-        },
-        "transform": [
-          {
-            "calculate": "datum['Population (2022)'] == null || datum['Population (2022)'] == '' ? null : +datum['Population (2022)']",
-            "as": "population"
-          },
-          {"aggregate": [{"op": "sum", "field": "population", "as": "total_population"}]}
-        ],
-        "layer": [
-          {
-            "mark": {"type": "text", "fontSize": 24, "fontWeight": "bold", "dy": -6},
-            "encoding": {
-              "text": {"field": "total_population", "type": "quantitative", "format": ",d"},
-              "tooltip": [
-                {"field": "total_population", "type": "quantitative", "title": "Total population (2022)", "format": ",d"}
-              ]
-            }
-          },
-          {
-            "mark": {"type": "text", "fontSize": 11, "dy": 18, "color": "#555"},
-            "encoding": {"text": {"value": "Total population (2022)"}}
-          }
-        ]
-      },
-  
-      {
-        "width": 180,
+        "width": 300,
         "height": 110,
         "data": {
           "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-10-Homework/LGA_Health_population.csv",
@@ -156,7 +87,7 @@
         ],
         "layer": [
           {
-            "mark": {"type": "text", "fontSize": 28, "fontWeight": "bold", "dy": -6},
+            "mark": {"type": "text", "fontSize": 36, "fontWeight": "bold", "dy": -6},
             "encoding": {
               "text": {"field": "lgas_ge_50", "type": "quantitative", "format": "d"},
               "tooltip": [
@@ -165,14 +96,14 @@
             }
           },
           {
-            "mark": {"type": "text", "fontSize": 11, "dy": 18, "color": "#555"},
+            "mark": {"type": "text", "fontSize": 14, "dy": 18, "color": "#555"},
             "encoding": {"text": {"value": "LGAs with >= 50% insured"}}
           }
         ]
       },
   
       {
-        "width": 180,
+        "width": 300,
         "height": 110,
         "data": {
           "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-10-Homework/LGA_Health_population.csv",
@@ -193,7 +124,7 @@
         ],
         "layer": [
           {
-            "mark": {"type": "text", "fontSize": 28, "fontWeight": "bold", "dy": -6},
+            "mark": {"type": "text", "fontSize": 36, "fontWeight": "bold", "dy": -6},
             "encoding": {
               "text": {"field": "lgas_lt_50", "type": "quantitative", "format": "d"},
               "tooltip": [
@@ -202,7 +133,7 @@
             }
           },
           {
-            "mark": {"type": "text", "fontSize": 11, "dy": 18, "color": "#555"},
+            "mark": {"type": "text", "fontSize": 14, "dy": 18, "color": "#555"},
             "encoding": {"text": {"value": "LGAs with < 50% insured"}}
           }
         ]
@@ -211,7 +142,7 @@
     "config": {
       "view": {"stroke": "transparent"},
       "axis": {"labelFontSize": 11, "titleFontSize": 12},
-      "background": "#ffffff"
+      "background": "#E6F3FF"
     }
   }
   

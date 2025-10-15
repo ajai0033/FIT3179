@@ -131,7 +131,8 @@
     "config": {
       "view": { "stroke": "transparent" },
       "axis": { "labelFontSize": 12, "titleFontSize": 13 },
-      "legend": { "labelFontSize": 12, "titleFontSize": 13 }
+      "legend": { "labelFontSize": 12, "titleFontSize": 13 },
+      "background": "#E6F3FF"
     }
   }
   

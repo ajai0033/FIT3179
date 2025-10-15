@@ -1,231 +1,382 @@
 <!doctype html>
-<html>
+<html lang="en">
+<script src="https://d3js.org/d3-geo.v2.min.js"></script>
 <head>
-  <meta charset="utf-8"/>
-  <title>Week 10 Homework</title>
+  <meta charset="utf-8" />
+  <title>Health Insurance & Wellbeing — Layout (CSS-only)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+
   <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; padding:18px; background:#f7f7f8; color:#111 }
-    h2 { text-align:center; }
-    .flex-container {
+    /* ---------- Page reset & variables ---------- */
+    :root{
+      --page-pad: 18px;
+      --gap: 18px;
+      /* changed to light blue for page and containers */
+      --card-bg: #E6F3FF;      /* light blue card background */
+      --page-bg: #E6F3FF;      /* light blue page background */
+      --max-width: 1200px;
+      --accent: #2b6cb0;
+      --card-radius: 10px;
+      --card-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+    * { box-sizing: border-box; }
+    html,body { height: 100%; margin:0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      background: var(--page-bg);
+      color: #0f1720;
+      padding: var(--page-pad);
       display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
       justify-content: center;
-      align-items: flex-start;
     }
-    .vis-container {
-      background: #fff;
+
+    /* ---------- Page container ---------- */
+    .page {
+      width: 100%;
+      max-width: var(--max-width);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--gap);
+    }
+
+    header {
+      text-align: center;
+      padding: 6px 12px;
+    }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    header p.sub { margin: 6px 0 0 0; color:#444; font-size: 1rem; }
+
+    /* ---------- Overview (full width) ---------- */
+    .overview {
+      background: var(--card-bg);
+      border-radius: var(--card-radius);
+      box-shadow: var(--card-shadow);
       padding: 12px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      flex: 1 1 480px;
-      min-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 160px; /* reserve space so the KPI row won't overlap */
+      margin-bottom: 32px;
     }
-    .controls { display:flex; gap:12px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
-    select, button { padding:6px; border-radius:6px; border:1px solid #ddd; }
+    .overview h2 { margin: 0; font-size:1rem; }
+    .overview .viz {
+      width: 100%;
+      height: 140px; /* fixed height for KPI row */
+      min-height: 120px;
+    }
+
+    /* ---------- Two-column area (map + ranked bar) ---------- */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--gap);
+      align-items: start;
+    }
+
+    /* Card styling shared */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--card-radius);
+      box-shadow: var(--card-shadow);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 480px; /* ensure enough room for Vega to render without overlay */
+    }
+    .card h2 { margin: 0; font-size:1rem; }
+
+    /* Viz containers — Vega should fill these */
+    .viz {
+      width: 100%;
+      height: 100%;
+      min-height: 380px;
+      /* Set an aspect ratio for nicer scaling on wide screens; map tends to be wider/taller */
+      aspect-ratio: 16 / 10;
+      background: transparent;
+    }
+    /* If you want the bar chart same height as map, keep aspect-ratio same */
+    .viz.bar { aspect-ratio: 16 / 10; }
+
+    /* explanatory text blocks inserted between chart rows */
+    .explain-block {
+      background: #D6EEFF; /* slightly deeper blue so text blocks are visible */
+      border-radius: 10px;
+      padding: 18px 22px;
+      box-shadow: var(--card-shadow);
+      color: #06304a;
+      font-size: 0.98rem;
+      line-height: 1.4;
+      margin: 0;
+    }
+    /* ensure text block sits full-width (within page grid) */
+    .explain-wrap {
+      display: block;
+      width: 100%;
+    }
+
+    /* Caption style */
+    .caption { font-size: 0.9rem; color:#555; margin-top: 6px; margin-bottom: 2px; }
+
+    /* ---------- Responsive adjustments (no JS) ---------- */
+    @media (max-width: 1000px) {
+      .two-col { grid-template-columns: 1fr; }
+      .card { min-height: 420px; }
+      .overview .viz { height: 150px; }
+    }
+
+    /* ---------- Accessibility / focus states ---------- */
+    .card:focus-within { outline: 2px solid rgba(43,108,176,0.12); }
+
+    .chart-caption {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #555;
+      margin-top: 6px;   /* creates gap between chart and caption */
+      font-style: italic; /* optional — looks like a figure caption */
+    }
+
+    /* Zoom and Pan controls */
+    .zoom-controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px; /* Increased gap to separate zoom/reset from pan */
+      z-index: 10;
+      align-items: center;
+    }
+
+    .zoom-btn {
+      width: 36px;
+      height: 36px;
+      background: white;
+      border: 2px solid #2b6cb0;
+      border-radius: 6px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #2b6cb0;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .zoom-btn:hover {
+      background: #2b6cb0;
+      color: white;
+      transform: scale(1.05);
+    }
+
+    .zoom-btn:active {
+      transform: scale(0.95);
+    }
+
+    .zoom-btn:focus {
+      outline: 2px solid #2b6cb0;
+      outline-offset: 2px;
+    }
+
+    /* New styles for Pan controls */
+    .pan-controls {
+      display: grid;
+      grid-template-columns: 36px 36px 36px;
+      grid-template-rows: 36px 36px;
+      grid-template-areas:
+        ". up ."
+        "left right";
+      gap: 5px;
+    }
+    
+    #panUp    { grid-area: up; }
+    #panLeft  { grid-area: left; }
+    #panRight { grid-area: right; }
+    /* Position pan down below the left/right buttons */
+    #panDown {
+      grid-column: 2 / 3;
+      grid-row: 3 / 4;
+    }
+    
+    .pan-btn {
+      font-size: 22px;
+    }
+
   </style>
 </head>
+
 <body>
+  <div class="page" role="main">
+    <header>
+      <h1>Health Insurance & Wellbeing in Australian LGAs</h1>
+      <p class="sub">Overview and spatial distribution of private health insurance coverage.</p>
+    </header>
 
-<h2>Private Health Insurance vs Needs & Map</h2>
+    <section class="overview" aria-label="Overview KPIs">
+      <h2>Overview — Key indicators</h2>
+      <div id="overviewVis" class="viz" role="region" aria-label="Key performance indicators"></div>
+      <p class="caption">
+        Australians have a high % of health conditions. <br>
+        Not many LGAs have more than 50% of population insured.
+      </p>
+    </section>
 
-<div class="flex-container">
-  <div class="vis-container">
-    <div class="controls">
-      <label>
-        X axis:
-        <select id="xField">
-          <option value="disability_pct">Persons with disability (%) (2018)</option>
-          <option value="carers_pct">Persons who are carers (%) (2018)</option>
-          <option value="mental_pct">Mental health condition (%) (2021)</option>
-          <option value="arthritis_pct">Arthritis (%) (2021)</option>
-        </select>
-      </label>
+    <section class="two-col" aria-label="Map and Ranked Bars">
+      <div class="card" aria-label="% Insured Map">
+        <h2>% Privately Insured by Geography</h2>
+        <div style="position: relative;">
+          <div id="mapVis" class="viz" role="region" aria-label="Map of percent insured"></div>
+        </div>
+      </div>
 
-      <label>
-        Show size:
-        <select id="sizeFilter">
-          <option value="all">All sizes</option>
-          <option value="small">Small (&lt;5k)</option>
-          <option value="medium">Medium (5k–50k)</option>
-          <option value="large">Large (&gt;50k)</option>
-        </select>
-      </label>
+      <div class="card" aria-label="Ranked LGAs by percent insured">
+        <h2>Ranked LGAs — % privately insured</h2>
+        <div id="rankVis" class="viz bar" role="region" aria-label="Ranked LGAs chart"></div>
+      </div>
+    </section>
 
-      <button id="resetBtn">Reset filters</button>
+    <div class="explain-wrap">
+      <div class="explain-block" role="note" aria-label="explanatory note">
+        <p style="margin:0;">
+          Remote areas have a very low proportion of insured people.<br>
+        </p>
+      </div>
     </div>
-    <div id="scatterVis"></div>
+
+    <section class="two-col">
+      <div class="card">
+        <h2>Private Health Insurance by Age and Sex</h2>
+        <div id="pyramidVis" class="viz"></div>
+      </div>
+
+      <div class="card">
+        <div id="timeseriesVis" class="viz"></div>
+      </div>
+    </section>
+
+    <div class="explain-wrap">
+      <div class="explain-block" role="note" aria-label="explanatory note">
+        <p style="margin:0;">
+          The least insured age group is from 25-29. Males tend to be less insured compared to females.<br>
+          The % of Australians without insurance is decreasing over time.
+        </p>
+      </div>
+    </div>
+
+    <section class="two-col">
+      <div class="card">
+        <h2>Treatment by Type</h2>
+        <div id="treemapVis" class="viz"></div>
+      </div>
+
+      <div class="card">
+        <h2>Heatmap of Hospital Bed Availability</h2>
+        <div id="heatmapVis" class="viz"></div>
+        <p class="caption">
+          Heatmap of Hospital beds per 1000 people. 
+        </p>
+      </div>
+    </section>
+
+    <div class="explain-wrap">
+      <div class="explain-block" role="note" aria-label="explanatory note">
+        <p style="margin:0;">
+          Private health is most commonly used for extras such as Dentistry.<br>
+          Beds available per 1000 people is high in public hospitals.
+        </p>
+      </div>
+    </div>
+
+    <section class="card" aria-label="Scatter Plot Analysis">
+      <h2>Relationship: Health Needs vs. Insurance Coverage</h2>
+      <div id="scatterVis" class="viz" role="region" aria-label="Scatter plot of health needs vs insurance coverage"></div>
+      <p class="caption">
+        Explore the relationship between different health needs (x-axis) and private insurance coverage (y-axis).
+        Use the dropdowns to change the metric and filter by LGA population size.
+      </p>
+    </section>
   </div>
 
-  <div class="vis-container">
-    <div id="mapVis"></div>
-  </div>
-</div>
+  <script>
+  const overviewSpecPath = 'Spec/kpis_overview.vg.json';
+  const mapSpecPath = 'Spec/map_pct_insured.vg.json';
+  const rankSpecPath = 'Spec/ranked_bar_insured.vg.json';
+  const scatterSpecPath = 'Spec/pct_insured_vs_x.vg.json';
+  const scatterIncomeSpecPath = 'Spec/income_vs_insurance.vg.json';
+  const pyramidSpecPath = 'Spec/age_vs_insured.vg.json';
+  const heatmapSpecPath = 'Spec/heatmap_hospital_bed_density.vg.json';
+  const treemapVisSpecPath = 'Spec/treatment_type.vg.json';
+  const timeseriesVisSpecPath = 'Spec/overtime.vg.json'
 
-<script>
-(async function(){
-  const scatterUrl = "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-10-Homework/LGA_Health_population.csv";
-  const text = await fetch(scatterUrl).then(r => r.text());
-  const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+  let mapView, rankView;
+  let currentZoom = 650;
+  let currentCenter = [134.0, -26.0];
 
-  const cleanNum = v => { if (v==null) return null; const s=String(v).trim(); if(s==='') return null; const c=s.replace(/[^0-9.]/g,''); return c===''?null:Number(c); };
+  // embed map and stash the view
+  vegaEmbed('#overviewVis', overviewSpecPath, {actions:false});
+  vegaEmbed('#mapVis', mapSpecPath, {actions:false})
+    .then(res => { 
+      mapView = res.view;
+      console.log('Map view loaded');
+      
+      // Set up zoom and pan controls
+      setupMapControls();
+    })
+    .catch(err => console.error('Map embed error:', err));
 
-  const rowsRaw = parsed.data.map(r => {
-    const pop = cleanNum(r['Population (2022)']);
-    const insured = cleanNum(r['Persons who reported having private health insurance (no.) (Data year: 2022)']) ?? 0;
-    const pct_insured = (pop != null && pop>0) ? (insured/pop)*100 : null;
-    return {
-      lga_name: r['Local Government Areas 2021 name'],
-      lga_code: r['Local Government Areas 2021 code'],
-      population: pop,
-      insured: insured,
-      pct_insured: pct_insured,
-      disability_pct: cleanNum(r['Persons with disability (%) (Data year: 2018)']),
-      carers_pct: cleanNum(r['Persons who are carers (%) (Data year: 2018)']),
-      mental_pct: cleanNum(r['Persons with long-term health condition(s): Mental health condition (including depression or anxiety) (%) (Data year: 2021)']),
-      arthritis_pct: cleanNum(r['Persons with long-term health condition(s): Arthritis (%) (Data year: 2021)'])
-    };
-  });
+  // embed rank chart
+  vegaEmbed('#rankVis', rankSpecPath, {actions:false})
+    .then(res => {
+      rankView = res.view;
+      console.log('Rank view loaded');
 
-  const rows = rowsRaw.filter(d=>d.population!=null && d.population > 0).map(d=>{
-    let size_cat; if(d.population<5000) size_cat="Small (<5k)"; else if(d.population<50000) size_cat="Medium (5k–50k)"; else size_cat="Large (>50k)";
-    return {...d,size_cat};
-  });
+      // Listen for bar clicks to highlight on map
+      rankView.addSignalListener('lgaClick', async (name, value) => {
+        if (!mapView) return;
 
-  const xSelect = document.getElementById('xField');
-  const filterEl = document.getElementById('sizeFilter');
-  const resetBtn = document.getElementById('resetBtn');
-
-  function xLabelForKey(k){
-    return {disability_pct:"Persons with disability (%) (2018)", carers_pct:"Persons who are carers (%) (2018)", mental_pct:"Mental health condition (%) (2021)", arthritis_pct:"Arthritis (%) (2021)"}[k] ?? k;
-  }
-
-  function buildScatterSpec(dataValues, xFieldKey){
-  return {
-    "$schema":"https://vega.github.io/schema/vega-lite/v5.json",
-    "width":500,
-    "height":500,
-    "layer":[
-      {
-        "data":{"values":dataValues},
-        "mark":{"type":"point","filled":true,"tooltip":true},
-        "encoding":{
-          "x":{"field":xFieldKey,"type":"quantitative","title":xLabelForKey(xFieldKey)},
-          "y":{"field":"pct_insured","type":"quantitative","title":"Percent with Private Health Insurance (%)"},
-          "size":{
-            "field":"population",
-            "type":"quantitative",
-            "scale":{
-              "range":[50,2000],
-              "domain": [1000,1200000]
-            },
-            "legend":{"title":"Population size"}
-          },
-          "color":{
-            "field":"size_cat",
-            "type":"nominal",
-            "legend":{"title":"Population category"},
-            "scale":{"domain":["Small (<5k)","Medium (5k–50k)","Large (>50k)"],"range":["#66c2a5","#fc8d62","#8da0cb"]}
-          },
-          "tooltip":[
-            {"field":"lga_name","type":"nominal","title":"LGA"},
-            {"field":"population","type":"quantitative","title":"Population"},
-            {"field":"insured","type":"quantitative","title":"Number insured"},
-            {"field":"pct_insured","type":"quantitative","title":"% insured","format":".1f"},
-            {"field":xFieldKey,"type":"quantitative","title":xLabelForKey(xFieldKey)}
-          ]
+        let clickedLGA = null;
+        if (value && value['Local Government Areas 2021 name']) {
+          clickedLGA = value['Local Government Areas 2021 name'][0];
         }
-      },
-      // --- Horizontal line annotation ---
-      {
-        "data": {"values":[{"y":50}]},  // y-value for the line
-        "mark": {"type":"rule","color":"red","strokeWidth":2},
-        "encoding": {
-          "y":{"field":"y","type":"quantitative"}
+
+        if (clickedLGA) {
+          await rankView.signal('selectedLGA', clickedLGA).runAsync();
+          await mapView.signal('selectedLGA', clickedLGA).runAsync();
+          
+          const geo = mapView.data('mapData');
+          if (geo) {
+            const feature = geo.find(d => 
+              d && d.properties && d.properties.LGA_NAME21 === clickedLGA
+            );
+            
+            if (feature) {
+              const centroid = d3.geoCentroid(feature);
+              currentCenter = centroid;
+              await mapView.signal('projCenter', centroid).runAsync();
+            }
+          }
+        } else {
+          await rankView.signal('selectedLGA', null).runAsync();
+          await mapView.signal('selectedLGA', null).runAsync();
         }
-      },
-      // --- Text label for the line ---
-      {
-        "data": {"values":[{"y":50,"label":"50% target"}]},
-        "mark": {"type":"text","color":"red","align":"left","dx":5,"dy":-5,"fontWeight":"bold"},
-        "encoding": {
-          "y":{"field":"y","type":"quantitative"},
-          "text":{"field":"label","type":"nominal"}
-        }
-      }
-    ]
-  };
-}
+      });
+    })
+    .catch(err => console.error('Rank embed error:', err));
 
-
-  function renderScatter(){
-    const xField = xSelect.value;
-    const sizeFilter = filterEl.value;
-    let filtered;
-    if(sizeFilter==='all') filtered = rows;
-    else if(sizeFilter==='small') filtered = rows.filter(d=>d.size_cat==="Small (<5k)");
-    else if(sizeFilter==='medium') filtered = rows.filter(d=>d.size_cat==="Medium (5k–50k)");
-    else if(sizeFilter==='large') filtered = rows.filter(d=>d.size_cat==="Large (>50k)");
-    filtered = filtered.filter(d=>d[xField]!=null);
-    const spec = buildScatterSpec(filtered, xField);
-    vegaEmbed('#scatterVis', spec, {actions:false});
-  }
-
-  xSelect.addEventListener('change', renderScatter);
-  filterEl.addEventListener('change', renderScatter);
-  resetBtn.addEventListener('click',()=>{ xSelect.value='disability_pct'; filterEl.value='all'; renderScatter(); });
-  renderScatter();
-
-  // --- Map Spec ---
-  const mapSpec = {
-    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-    "title": "Persons with disability (%) — by LGA (2018)",
-    "width":500,
-    "height": 500,
-    "projection": {"type": "mercator"},
-    "data": {
-      "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_2021_AUST_GDA2020.json",
-      "format": {"type": "topojson", "feature": "LGA_2021_AUST_GDA2020"}
-    },
-    "transform": [
-      {
-        "lookup": "properties.LGA_CODE21",
-        "from": {
-          "data": {
-            "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Week-9-Homework/LGA_hlth_disab_DbR_Nov24_-7869466443108774970%20(2).csv",
-            "format":{"type":"csv"}
-          },
-          "key": "Local Government Areas 2021 code",
-          "fields": ["Persons with disability (%) (Data year: 2018)"]
-        }
-      },
-      {
-        "calculate": "datum['Persons with disability (%) (Data year: 2018)'] == null ? null : +datum['Persons with disability (%) (Data year: 2018)']",
-        "as": "persons_with_disability_pct"
-      }
-    ],
-    "mark": {"type": "geoshape"},
-    "encoding": {
-      "color": {
-        "field": "persons_with_disability_pct",
-        "type": "quantitative",
-        "scale": {"type": "linear","domain": [0,37.2]},
-        "legend": {"title": "Percent with disability"}
-      },
-      "tooltip": [
-        {"field": "properties.LGA_NAME21", "type": "nominal", "title": "LGA"},
-        {"field": "persons_with_disability_pct", "type": "quantitative", "title": "Pct (2018)"}
-      ]
-    }
-  };
-
-  vegaEmbed('#mapVis', mapSpec, {actions:false});
-})();
-</script>
-
+  // Continue with other embeds...
+  vegaEmbed('#scatterVis', scatterIncomeSpecPath, {actions:false})
+    .catch(err => console.error('Scatter plot embed error:', err));
+  vegaEmbed('#pyramidVis', pyramidSpecPath, {actions:false});
+  vegaEmbed('#heatmapVis', heatmapSpecPath, {actions:false});
+  vegaEmbed('#treemapVis', treemapVisSpecPath, {actions:false});
+  vegaEmbed('#timeseriesVis', timeseriesVisSpecPath, {actions:false});
+  </script>
 </body>
 </html>
