@@ -1,7 +1,6 @@
 {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-    "description": "Scatter: % privately insured (from a dedicated CSV) vs Median household income (yearly) by LGA. Bubble size = population.",
-    "title": "% privately insured vs Median household income (yearly) — by LGA",
+    "description": "Scatter: % privately insured vs Median household income by LGA with target line",
     "autosize": { "type": "fit", "contains": "padding" },
     "width": "container",
     "height": 350,
@@ -37,7 +36,6 @@
         "calculate": "datum['Insured Pct'] == null || datum['Insured Pct'] === '' ? null : toNumber(replace(replace(datum['Insured Pct'], '%', ''), ',', ''))",
         "as": "pct_insured"
       },
-  
       {
         "lookup": "Local Government Areas 2021 code",
         "from": {
@@ -49,17 +47,14 @@
           "fields": ["Median household income (yearly)"]
         }
       },
-  
       {
         "calculate": "datum['Median household income (yearly)'] == null || datum['Median household income (yearly)'] === '' ? null : toNumber(replace(datum['Median household income (yearly)'], ',', ''))",
         "as": "median_household_income_yearly"
       },
-  
       {
         "calculate": "datum.population == null ? null : (datum.population < 5000 ? 'Small (<5k)' : (datum.population < 50000 ? 'Medium (5k–50k)' : 'Large (>50k)'))",
         "as": "size_cat"
       },
-  
       {
         "calculate": "'' + datum['Local Government Areas 2021 code']",
         "as": "lga_code"
@@ -68,65 +63,124 @@
         "calculate": "datum['Local Government Areas 2021 name']",
         "as": "lga_name"
       },
-  
       {
         "filter": "sizeFilter == 'all' || datum.size_cat == sizeFilter"
       },
-  
       {
         "filter": "datum.median_household_income_yearly != null && isFinite(datum.median_household_income_yearly) && datum.pct_insured != null && isFinite(datum.pct_insured)"
       }
     ],
   
-    "mark": { "type": "point", "filled": true, "opacity": 0.9 },
-  
-    "encoding": {
-      "x": {
-      "field": "pct_insured",
-      "type": "quantitative",
-      "title": "Percent with Private Health Insurance (%)",
-      "axis": {
-      "format": ".0f",
-      "tickMinStep": 5,
-      "values": [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65],
-      "tickCount": 14
+    "layer": [
+      {
+        "mark": { "type": "point", "filled": true, "opacity": 0.7 },
+        "encoding": {
+          "x": {
+            "field": "pct_insured",
+            "type": "quantitative",
+            "title": "Percent with Private Health Insurance (%)",
+            "axis": {
+              "format": ".0f",
+              "tickMinStep": 5,
+              "values": [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65],
+              "tickCount": 14
+            },
+            "scale": { "domain": [0, 65] }
+          },
+          "y": {
+            "field": "median_household_income_yearly",
+            "type": "quantitative",
+            "title": "Median household income (yearly, $)",
+            "axis": { "format": "$,d" }
+          },
+          "size": {
+            "field": "population",
+            "type": "quantitative",
+            "scale": { "domain": [1000, 300000], "range": [40, 2000], "clamp": true },
+            "legend": { "title": "Population (bubble area)", "orient": "right" }
+          },
+          "color": {
+            "field": "size_cat",
+            "type": "nominal",
+            "scale": {
+              "domain": ["Small (<5k)", "Medium (5k–50k)", "Large (>50k)"],
+              "range": ["#66c2a5", "#fc8d62", "#8da0cb"]
+            },
+            "legend": { "title": "Population category" }
+          },
+          "tooltip": [
+            { "field": "lga_name", "type": "nominal", "title": "LGA" },
+            { "field": "population", "type": "quantitative", "title": "Population", "format": ",d" },
+            { "field": "insured", "type": "quantitative", "title": "Number insured", "format": ",d" },
+            { "field": "pct_insured", "type": "quantitative", "title": "% insured", "format": ".2f" },
+            { "field": "median_household_income_yearly", "type": "quantitative", "title": "Median household income (yearly $)", "format": "$,d" },
+            { "field": "size_cat", "type": "nominal", "title": "Population category" }
+          ]
+        }
       },
-      "scale": { "domain": [0, 65] }
-      },
-  
-      "y": {
-        "field": "median_household_income_yearly",
-        "type": "quantitative",
-        "title": "Median household income (yearly, $)",
-        "axis": { "format": "$,d" }
-      },
-  
-      "size": {
-        "field": "population",
-        "type": "quantitative",
-        "scale": { "domain": [1000, 300000], "range": [40, 2000], "clamp": true },
-        "legend": { "title": "Population (bubble area)", "orient": "right" }
-      },
-  
-      "color": {
-        "field": "size_cat",
-        "type": "nominal",
-        "scale": {
-          "domain": ["Small (<5k)", "Medium (5k–50k)", "Large (>50k)"],
-          "range": ["#66c2a5", "#fc8d62", "#8da0cb"]
+      {
+        "mark": {
+          "type": "line",
+          "strokeWidth": 3,
+          "opacity": 1
         },
-        "legend": { "title": "Population category" }
+        "transform": [
+            {
+              "regression": "median_household_income_yearly",
+              "on": "pct_insured",
+              "groupby": ["size_cat"],
+              "extent": [0, 65]
+            }
+          ],
+        "encoding": {
+          "x": {
+            "field": "pct_insured",
+            "type": "quantitative"
+          },
+          "y": {
+            "field": "median_household_income_yearly",
+            "type": "quantitative"
+          },
+          "color": {
+            "field": "size_cat",
+            "type": "nominal",
+            "scale": {
+              "domain": ["Small (<5k)", "Medium (5k–50k)", "Large (>50k)"],
+              "range": ["#66c2a5", "#fc8d62", "#8da0cb"]
+            }
+          }
+        }
       },
-  
-      "tooltip": [
-        { "field": "lga_name", "type": "nominal", "title": "LGA" },
-        { "field": "population", "type": "quantitative", "title": "Population", "format": ",d" },
-        { "field": "insured", "type": "quantitative", "title": "Number insured", "format": ",d" },
-        { "field": "pct_insured", "type": "quantitative", "title": "% insured", "format": ".2f" },
-        { "field": "median_household_income_yearly", "type": "quantitative", "title": "Median household income (yearly $)", "format": "$,d" },
-        { "field": "size_cat", "type": "nominal", "title": "Population category" }
-      ]
-    },
+      {
+        "data": { "values": [{}] },
+        "mark": {
+          "type": "rule",
+          "strokeDash": [5, 5],
+          "color": "#ef4444",
+          "strokeWidth": 2
+        },
+        "encoding": {
+          "x": { "datum": 40 }
+        }
+      },
+      {
+        "data": { "values": [{}] },
+        "mark": {
+          "type": "text",
+          "align": "left",
+          "dx": 5,
+          "dy": -5,
+          "fontSize": 12,
+          "fontWeight": "bold",
+          "color": "#ef4444"
+        },
+        "encoding": {
+          "x": { "datum": 40 },
+          "y": { "datum": 0 },
+          "text": { "value": "Target: 40%" }
+        }
+      }
+    ],
   
     "config": {
       "view": { "stroke": "transparent" },
@@ -135,4 +189,3 @@
       "background": "#E6F3FF"
     }
   }
-  

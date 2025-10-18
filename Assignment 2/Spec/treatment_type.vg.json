@@ -1,9 +1,12 @@
 {
     "$schema": "https://vega.github.io/schema/vega/v5.json",
-    "width": 600,
-    "autosize": { "type": "fit", "contains": "padding"},
-    "height": 400,
-    "padding": 5,
+    "signals": [
+        { "name": "chartWidth", "update": "containerSize()[0]" }
+      ],
+    "width": {"signal": "chartWidth"},
+    "autosize": "fit",
+    "height": 350,
+    "padding": 0,
     "data": [
       {
         "name": "raw_data",
@@ -71,9 +74,9 @@
           {
             "type": "treemap",
             "field": "value",
-            "size": [{"signal": "width"}, {"signal": "height"}],
+            "size": [{"signal": "width + 80"}, {"signal": "height"}],
             "method": "squarify",
-            "ratio": 1.5,
+            "ratio": 1.6,
             "round": true,
             "padding": 1
           }

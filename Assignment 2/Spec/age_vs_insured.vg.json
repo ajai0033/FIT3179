@@ -1,7 +1,6 @@
 {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
     "description": "Mirrored bar chart showing mean % insured by Age Group and Sex. 'All States' shows mean across states.",
-    "title": "Private Health Insurance (%) by Age Group and Gender",
     "width": "container",
     "autosize": { "type": "fit", "contains": "padding" },
     "height": 400,
@@ -52,6 +51,14 @@
       {
         "calculate": "abs(datum.PctSigned)",
         "as": "PctAbs"
+      },
+      {
+        "calculate": "trim(datum['Age Group'])",
+        "as": "AgeGroupTrim"
+      },
+      {
+        "calculate": "toNumber(split(datum.AgeGroupTrim, /[^0-9]/)[0])",
+        "as": "age_start_num"
       }
     ],
   
@@ -66,7 +73,7 @@
           "y": {
             "field": "Age Group",
             "type": "ordinal",
-            "sort": "descending",
+            "sort": {"field": "age_start_num", "order": "descending"},
             
             "axis": {
               "title": "Age Group",
@@ -93,7 +100,7 @@
               "domain": ["Male", "Female"],
               "range": ["#1f77b4", "#ff7f0e"]
             },
-            "legend": {"title": "Sex", "orient": "right"}
+            "legend": {"title": "Sex", "orient": "bottom"}
           },
           "tooltip": [
             {"field": "Age Group", "type": "ordinal", "title": "Age group"},
@@ -118,7 +125,12 @@
             "scale": {"domain": [-70, 70]}
           },
           "text": {"field": "PctAbs", "type": "quantitative", "format": ".1f"},
-          "color": {"value": "#000"}
+          "color": {
+            "condition": {
+                "test": "datum.NormalizedSex === 'Male'",
+                "value": "#FFFFFF"
+            },
+            "value": "#000"}
         }
       },
       {

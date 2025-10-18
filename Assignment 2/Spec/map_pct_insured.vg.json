@@ -1,76 +1,101 @@
 {
   "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-  "title": "% Insured — by LGA",
   "width": "container",
   "autosize": {"type":"fit","contains":"padding"},
   "height": 400,
   
-  "data": {
-    "name": "mapData",
-    "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_2021_AUST_GDA2020.json",
-    "format": {"type": "topojson", "feature": "LGA_2021_AUST_GDA2020"}
-  },
   "params": [
       {
         "name": "selectedLGA",
         "value": null
       },
       {"name": "projCenter", "value": [134.0, -26.0]},
-      {"name": "projScale", "value": 650}
+      {"name": "projScale", "value": 650},
+      {
+        "name": "zoom_level",
+        "value": 450,
+        "bind": {
+        "input": "range",
+        "min": 450,
+        "max": 50000,
+        "step": 50,
+        "name": "Zoom: "
+        }
+      }
   ],
   "projection": {
       "type": "mercator",
       "center": {"signal": "projCenter"},
-      "scale": {"signal": "projScale"}
+      "scale": {"signal": "zoom_level"}
   },
-  "transform": [
+  "layer": [
     {
-      "lookup": "properties.LGA_CODE21",
-      "from": {
-        "data": {
-          "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Assignment_2/LGA_Insurance_pop.csv",
-          "format": {"type": "csv"}
-        },
-        "key": "Local Government Areas 2021 code",
-        "fields": ["Insured Pct"]
+      "data": {
+        "graticule": {"step": [5, 5]}
+      },
+      "mark": {
+        "type": "geoshape",
+        "stroke": "#cccccc",
+        "strokeWidth": 0.5,
+        "fill": null
       }
     },
     {
-      "calculate": "isValid(datum['Insured Pct']) && datum['Insured Pct'] !== '' ? parseFloat(replace(datum['Insured Pct'], '%', '')) : null",
-      "as": "pct_insured"
+      "data": {
+        "name": "mapData",
+        "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Week-9-Homework/LGA_2021_AUST_GDA2020.json",
+        "format": {"type": "topojson", "feature": "LGA_2021_AUST_GDA2020"}
+      },
+      "transform": [
+        {
+          "lookup": "properties.LGA_CODE21",
+          "from": {
+            "data": {
+              "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Assignment_2/LGA_Insurance_pop.csv",
+              "format": {"type": "csv"}
+            },
+            "key": "Local Government Areas 2021 code",
+            "fields": ["Insured Pct"]
+          }
+        },
+        {
+          "calculate": "isValid(datum['Insured Pct']) && datum['Insured Pct'] !== '' ? parseFloat(replace(datum['Insured Pct'], '%', '')) : null",
+          "as": "pct_insured"
+        }
+      ],
+      "mark": {"type": "geoshape", "stroke": "white", "strokeWidth": 0.5},
+      "encoding": {
+        "color": {
+          "condition": {
+              "test": "datum.properties.LGA_NAME21 == selectedLGA",
+              "value": "orange"
+          },
+          "field": "pct_insured",
+          "type": "quantitative",
+          "scale": {"scheme": "greens"},
+          "title": ["% Privately", "Insured"]
+        },
+        "strokeWidth": {
+          "condition": {
+            "test": "datum.properties.LGA_NAME21 == selectedLGA",
+            "value": 1.5
+          },
+          "value": 0.5
+        },
+        "opacity": {
+          "condition": {
+            "test": "datum.properties.LGA_NAME21 == selectedLGA",
+            "value": 1
+          },
+          "value": 0.7
+        },
+        "tooltip": [
+          {"field": "properties.LGA_NAME21", "type": "nominal", "title": "LGA"},
+          {"field": "pct_insured", "type": "quantitative", "title": "% insured", "format": ".2f"}
+        ]
+      }
     }
   ],
-  "mark": {"type": "geoshape", "stroke": "white", "strokeWidth": 0.5},
-  "encoding": {
-    "color": {
-      "condition": {
-          "test": "datum.properties.LGA_NAME21 == selectedLGA",
-          "value": "orange"
-      },
-      "field": "pct_insured",
-      "type": "quantitative",
-      "scale": {"scheme": "greens"},
-      "title": "% privately insured"
-    },
-    "strokeWidth": {
-      "condition": {
-        "test": "datum.properties.LGA_NAME21 == selectedLGA",
-        "value": 2.5
-      },
-      "value": 0.5
-    },
-    "opacity": {
-      "condition": {
-        "test": "datum.properties.LGA_NAME21 == selectedLGA",
-        "value": 1
-      },
-      "value": 0.7
-    },
-    "tooltip": [
-      {"field": "properties.LGA_NAME21", "type": "nominal", "title": "LGA"},
-      {"field": "pct_insured", "type": "quantitative", "title": "% insured", "format": ".2f"}
-    ]
-  },
   "config": {
     "view": {"stroke": "transparent"},
     "background": "#E6F3FF"

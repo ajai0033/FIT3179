@@ -1,0 +1,192 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "width": 600,
+  "height": 400,
+  "padding": 20,
+
+  "signals": [
+    {
+      "name": "nodeWidth",
+      "value": 30
+    },
+    {
+      "name": "nodePadding",
+      "value": 20
+    }
+  ],
+
+  "data": [
+    {
+      "name": "rawData",
+      "values": [
+        {"source": "Public Hospital", "target": "Elective", "value": 3006471},
+        {"source": "Public Hospital", "target": "Emergency", "value": 2977922},
+        {"source": "Public Hospital", "target": "Not assigned", "value": 1455812},
+        {"source": "Public Hospital", "target": "Not reported", "value": 39203},
+        {"source": "Private Hospital", "target": "Elective", "value": 4113025},
+        {"source": "Private Hospital", "target": "Emergency", "value": 247909},
+        {"source": "Private Hospital", "target": "Not assigned", "value": 727712},
+        {"source": "Private Hospital", "target": "Not reported", "value": 53999},
+        
+        {"source": "Elective", "target": "General intervention (surgical)", "value": 2372212},
+        {"source": "Elective", "target": "Medical", "value": 3307007},
+        {"source": "Elective", "target": "Specific intervention (other)", "value": 1378659},
+        {"source": "Elective", "target": "Childbirth", "value": 61618},
+        
+        {"source": "Emergency", "target": "General intervention (surgical)", "value": 388649},
+        {"source": "Emergency", "target": "Medical", "value": 2503487},
+        {"source": "Emergency", "target": "Specific intervention (other)", "value": 114405},
+        {"source": "Emergency", "target": "Childbirth", "value": 219290},
+        
+        {"source": "Not assigned", "target": "General intervention (surgical)", "value": 214343},
+        {"source": "Not assigned", "target": "Medical", "value": 1024924},
+        {"source": "Not assigned", "target": "Specific intervention (other)", "value": 27471},
+        {"source": "Not assigned", "target": "Mental Health", "value": 262555},
+        {"source": "Not assigned", "target": "Subacute and non-acute", "value": 654204},
+
+        {"source": "Not reported", "target": "Mental Health", "value": 93202}
+      ]
+    },
+    {
+      "name": "nodes",
+      "values": [
+        {"name": "Public Hospital", "column": 0, "order": 0},
+        {"name": "Private Hospital", "column": 0, "order": 1},
+        {"name": "Elective", "column": 1, "order": 0},
+        {"name": "Emergency", "column": 1, "order": 1},
+        {"name": "Not assigned", "column": 1, "order": 2},
+        {"name": "Not reported", "column": 1, "order": 3},
+        {"name": "General intervention (surgical)", "column": 2, "order": 0},
+        {"name": "Medical", "column": 2, "order": 1},
+        {"name": "Specific intervention (other)", "column": 2, "order": 2},
+        {"name": "Childbirth", "column": 2, "order": 3},
+        {"name": "Mental Health", "column": 2, "order": 4},
+        {"name": "Subacute and non-acute", "column": 2, "order": 5}
+      ],
+      "transform": [
+        {
+          "type": "formula",
+          "expr": "datum.column * (width / 2)",
+          "as": "x"
+        },
+        {
+          "type": "formula",
+          "expr": "datum.order * (height / 6) + 50",
+          "as": "y"
+        }
+      ]
+    },
+    {
+      "name": "edges",
+      "source": "rawData",
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "nodes",
+          "key": "name",
+          "fields": ["source"],
+          "as": ["sourceNode"]
+        },
+        {
+          "type": "lookup",
+          "from": "nodes",
+          "key": "name",
+          "fields": ["target"],
+          "as": ["targetNode"]
+        },
+        {
+          "type": "linkpath",
+          "orient": "horizontal",
+          "shape": "diagonal",
+          "sourceX": {"expr": "datum.sourceNode.x + nodeWidth"},
+          "sourceY": {"expr": "datum.sourceNode.y"},
+          "targetX": {"expr": "datum.targetNode.x"},
+          "targetY": {"expr": "datum.targetNode.y"}
+        }
+      ]
+    }
+  ],
+
+  "scales": [
+    {
+      "name": "color",
+      "type": "ordinal",
+      "domain": [
+        "Public Hospital", "Private Hospital",
+        "Elective", "Emergency", "Not assigned", "Not reported",
+        "General intervention (surgical)", "Medical", "Specific intervention (other)", 
+        "Childbirth", "Mental Health", "Subacute and non-acute"
+      ],
+      "range": [
+        "#3b82f6", "#10b981",
+        "#f59e0b", "#ef4444", "#6366f1", "#8b5cf6",
+        "#ec4899", "#14b8a6", "#f97316", "#a855f7", "#06b6d4", "#84cc16"
+      ]
+    }
+  ],
+
+  "marks": [
+    {
+      "type": "rect",
+      "from": {"data": "nodes"},
+      "encode": {
+        "enter": {
+          "x": {"field": "x"},
+          "width": {"signal": "nodeWidth"},
+          "y": {"field": "y"},
+          "height": {"value": 80},
+          "fill": {"scale": "color", "field": "name"},
+          "fillOpacity": {"value": 0.9},
+          "stroke": {"value": "#fff"},
+          "strokeWidth": {"value": 2},
+          "tooltip": {"signal": "{'Node': datum.name}"}
+        },
+        "update": {
+          "fillOpacity": {"value": 0.9}
+        },
+        "hover": {
+          "fillOpacity": {"value": 1}
+        }
+      }
+    },
+    {
+      "type": "text",
+      "from": {"data": "nodes"},
+      "encode": {
+        "enter": {
+          "x": {"signal": "datum.column == 0 ? datum.x - 10 : datum.x + nodeWidth + 10"},
+          "y": {"signal": "datum.y + 40"},
+          "align": {"signal": "datum.column == 0 ? 'right' : 'left'"},
+          "baseline": {"value": "middle"},
+          "text": {"field": "name"},
+          "fontSize": {"value": 12},
+          "fill": {"value": "#333"},
+          "fontWeight": {"value": 500}
+        }
+      }
+    },
+    {
+      "type": "path",
+      "from": {"data": "edges"},
+      "encode": {
+        "enter": {
+          "path": {"field": "path"},
+          "stroke": {"scale": "color", "field": "source"},
+          "strokeWidth": {"signal": "sqrt(datum.value / 5000)"},
+          "strokeOpacity": {"value": 0.4},
+          "fill": {"value": null},
+          "tooltip": {
+            "signal": "{'From': datum.source, 'To': datum.target, 'Patients': format(datum.value, ',')}"
+          }
+        },
+        "update": {
+          "strokeOpacity": {"value": 0.4}
+        },
+        "hover": {
+          "strokeOpacity": {"value": 0.7},
+          "strokeWidth": {"signal": "sqrt(datum.value / 5000) * 1.5"}
+        }
+      }
+    }
+  ]
+}

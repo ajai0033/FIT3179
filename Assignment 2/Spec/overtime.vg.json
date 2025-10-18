@@ -1,18 +1,13 @@
 {
     "$schema": "https://vega.github.io/schema/vega/v5.json",
-    "width": 600,
+    "description": "Scatter: % privately insured (from a dedicated CSV) vs Median household income (yearly) by LGA. Bubble size = population.",
     "autosize": { "type": "fit", "contains": "padding"},
-    "height": 450,
+    "signals": [
+        { "name": "chartWidth", "update": "containerSize()[0]" }
+      ],
+      "width": {"signal": "chartWidth"},
+    "height": 400,
     "padding": 5,
-    "title": {
-      "text": "Australians Without Private Health Insurance (2009-2023)",
-      "fontSize": 18,
-      "font": "sans-serif",
-      "anchor": "start",
-      "fontWeight": "bold",
-      "color": "#2d3748",
-      "offset": 10
-    },
     "data": [
       {
         "name": "raw_data",
@@ -51,9 +46,9 @@
       {
         "name": "y",
         "type": "linear",
-        "domain": [38, 48],
+        "domain": [40, 47],
         "range": "height",
-        "nice": true
+        "zero": false
       }
     ],
     "axes": [
@@ -88,7 +83,7 @@
           "enter": {
             "x": {"scale": "x", "field": "year_num"},
             "y": {"scale": "y", "field": "value_num"},
-            "y2": {"scale": "y", "value": 0},
+            "y2": {"scale": "y", "value": 40},
             "fill": {"value": "#667eea"},
             "fillOpacity": {"value": 0.2}
           }

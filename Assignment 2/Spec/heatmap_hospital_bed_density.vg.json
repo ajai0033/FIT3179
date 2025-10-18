@@ -1,9 +1,8 @@
 {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
     "description": "Heatmap showing hospital bed density by state and remoteness category.",
-    "title": "Public Hospital Beds per 1,000 People by State and Remoteness",
-    "width": 400,
-    "height": 350,
+    "width": "container",
+    "height": 300,
     "data": {
       "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/refs/heads/Assignment_2/state_remote_density.csv"
     },
@@ -26,7 +25,7 @@
       "color": {
         "field": "Density",
         "type": "quantitative",
-        "title": "Beds per 1,000 People",
+        "title": ["Beds per", "1,000", "People"],
         "scale": {"scheme": "blues"},
         "legend": {"orient": "right"}
       },

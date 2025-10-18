@@ -1,9 +1,8 @@
 {
   "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-  "title": "Top/Bottom LGAs by % Insured (cleaned and ranked)",
   "width": "container",
   "autosize": {"type":"fit","contains":"padding"},
-  "height": 350,
+  "height": 370,
   "data": {
     "url": "https://raw.githubusercontent.com/ajai0033/FIT3179/Assignment_2/LGA_Insurance_pop.csv",
     "format": {"type": "csv"}
@@ -77,7 +76,7 @@
           "field": "pct_insured",
           "type": "quantitative",
           "title": "% insured",
-          "axis": {"format": ".1f"}
+          "axis": {"format": ".0f"}
         },
         "color": {
           "condition": {
